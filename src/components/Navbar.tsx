@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Search, Bell, User } from 'lucide-react';
+import { Search, Bell, User, Settings } from 'lucide-react';
 
 const Navbar = () => {
   return (
@@ -29,6 +29,9 @@ const Navbar = () => {
             <button type="button" className="p-1 rounded-full text-gray-600 hover:bg-gray-100 focus:outline-none">
               <Bell className="w-5 h-5" />
             </button>
+            <Link to="/admin" className="p-1 rounded-full text-gray-600 hover:bg-gray-100 focus:outline-none">
+              <Settings className="w-5 h-5" />
+            </Link>
             <Button variant="outline" size="sm" className="ml-2">
               <User className="w-4 h-4 mr-2" />
               Entrar

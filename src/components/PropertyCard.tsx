@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, Calendar, Home } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 interface PropertyCardProps {
   id: string;
@@ -113,8 +114,8 @@ const PropertyCard = ({
       
       <CardFooter className="pt-0">
         <div className="w-full space-y-2">
-          <Button className="w-full bg-auction-primary hover:bg-auction-secondary">
-            Ver detalhes
+          <Button className="w-full bg-auction-primary hover:bg-auction-secondary" asChild>
+            <Link to={`/properties/${id}`}>Ver detalhes</Link>
           </Button>
           <Button variant="outline" className="w-full border-auction-primary text-auction-primary hover:bg-auction-primary hover:text-white">
             Adicionar aos favoritos
