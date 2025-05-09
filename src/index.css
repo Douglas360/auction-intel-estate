@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -13,10 +14,10 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 222.2 47.4% 11.2%;
+    --primary: 221.2 83% 53.3%;
     --primary-foreground: 210 40% 98%;
 
-    --secondary: 210 40% 96.1%;
+    --secondary: 217.9 91.2% 59.8%;
     --secondary-foreground: 222.2 47.4% 11.2%;
 
     --muted: 210 40% 96.1%;
@@ -30,24 +31,17 @@
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --ring: 221.2 83% 53.3%;
 
     --radius: 0.5rem;
 
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
@@ -61,7 +55,7 @@
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
     --primary-foreground: 222.2 47.4% 11.2%;
 
     --secondary: 217.2 32.6% 17.5%;
@@ -78,7 +72,8 @@
 
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --ring: 224.3 76.3% 48%;
+
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
@@ -97,5 +92,39 @@
 
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  .property-card {
+    @apply overflow-hidden bg-white shadow-md rounded-lg transition-all duration-300 hover:shadow-lg border border-gray-100;
+  }
+  
+  .discount-badge {
+    @apply bg-auction-discount text-white text-xs font-semibold px-2.5 py-0.5 rounded-md;
+  }
+  
+  .risk-badge-low {
+    @apply bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded;
+  }
+  
+  .risk-badge-medium {
+    @apply bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded;
+  }
+  
+  .risk-badge-high {
+    @apply bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded;
+  }
+  
+  .nav-link {
+    @apply px-4 py-2 text-sm font-medium rounded-md hover:bg-gray-100 transition-colors;
+  }
+  
+  .nav-link-active {
+    @apply bg-auction-primary text-white hover:bg-auction-secondary;
+  }
+  
+  .search-input {
+    @apply block w-full p-2 text-sm text-gray-900 border border-gray-300 rounded-lg bg-white focus:ring-auction-primary focus:border-auction-primary;
   }
 }
