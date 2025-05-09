@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Navbar from '@/components/Navbar';
 import { Button } from "@/components/ui/button";
@@ -9,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Search, Plus, Edit, Trash, User, Home, Gavel, AlertTriangle } from 'lucide-react';
+import { Search, Plus, Edit, Trash, User, Home, Gavel, AlertTriangle, MapPin, Calendar } from 'lucide-react';
+import { Badge } from "@/components/ui/badge";
 
 // Mock data for the admin dashboard
 const mockProperties = [
