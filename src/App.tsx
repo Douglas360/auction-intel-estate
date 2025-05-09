@@ -9,6 +9,7 @@ import PropertySearch from "./pages/PropertySearch";
 import PropertyDetail from "./pages/PropertyDetail";
 import SimulatorPage from "./pages/SimulatorPage";
 import Admin from "./pages/Admin";
+import UserDashboard from "./pages/UserDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/properties/:id" element={<PropertyDetail />} />
           <Route path="/simulator" element={<SimulatorPage />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/dashboard" element={<UserDashboard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
