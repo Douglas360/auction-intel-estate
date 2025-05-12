@@ -31,13 +31,32 @@ serve(async (req) => {
     // Get user from auth header
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      throw new Error("Usuário não autenticado");
+      // Return a successful response with inactive status when user is not authenticated
+      return new Response(JSON.stringify({ 
+        active: false,
+        plan: null,
+        current_period_end: null,
+        cancel_at_period_end: false
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
     }
     
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     if (userError || !user) {
-      throw new Error("Usuário não autenticado");
+      // Return a successful response with inactive status when authentication fails
+      return new Response(JSON.stringify({ 
+        active: false,
+        plan: null,
+        current_period_end: null,
+        cancel_at_period_end: false,
+        error: "Usuário não autenticado"
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200, // Changed from error code to success code with error message inside
+      });
     }
     
     // Get subscription from database
@@ -59,7 +78,17 @@ serve(async (req) => {
       .maybeSingle();
       
     if (subError) {
-      throw new Error("Erro ao buscar assinatura");
+      console.error("Database error:", subError);
+      return new Response(JSON.stringify({ 
+        active: false,
+        plan: null,
+        current_period_end: null,
+        cancel_at_period_end: false,
+        error: "Erro ao buscar assinatura no banco de dados"
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
     }
     
     // If no subscription found or no customer ID, return inactive
@@ -114,6 +143,17 @@ serve(async (req) => {
             updated_at: new Date().toISOString(),
           })
           .eq("id", userSubscription.id);
+          
+        return new Response(JSON.stringify({ 
+          active: false,
+          plan: null, 
+          current_period_end: null,
+          cancel_at_period_end: false,
+          error: "Assinatura não encontrada no Stripe"
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        });
       }
     }
     
@@ -129,9 +169,15 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error("Error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ 
+      error: error.message,
+      active: false,
+      plan: null,
+      current_period_end: null,
+      cancel_at_period_end: false
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 400,
+      status: 200, // Changed from error code to success code with error message inside
     });
   }
 });

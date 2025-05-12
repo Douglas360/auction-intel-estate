@@ -32,6 +32,7 @@ export function useSubscription() {
   const [isLoading, setIsLoading] = useState(true);
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const [isPortalLoading, setIsPortalLoading] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -58,6 +59,20 @@ export function useSubscription() {
     return [String(benefits)];
   };
 
+  // Check authentication status
+  const checkAuth = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const isUserAuthenticated = !!session?.user;
+      setIsAuthenticated(isUserAuthenticated);
+      return isUserAuthenticated;
+    } catch (error) {
+      console.error('Error checking authentication:', error);
+      setIsAuthenticated(false);
+      return false;
+    }
+  };
+
   // Fetch all available plans
   const fetchPlans = async () => {
     try {
@@ -76,6 +91,7 @@ export function useSubscription() {
       }));
       
       setPlans(typedPlans);
+      return typedPlans;
     } catch (error) {
       console.error('Error fetching plans:', error);
       toast({
@@ -83,6 +99,7 @@ export function useSubscription() {
         description: 'Não foi possível carregar os planos de assinatura',
         variant: 'destructive',
       });
+      return [];
     }
   };
 
@@ -90,6 +107,19 @@ export function useSubscription() {
   const checkSubscription = async () => {
     setIsLoading(true);
     try {
+      const isUserAuthenticated = await checkAuth();
+      if (!isUserAuthenticated) {
+        console.log('Usuário não autenticado, pulando verificação de assinatura');
+        setSubscriptionStatus({
+          active: false,
+          plan: null,
+          current_period_end: null,
+          cancel_at_period_end: false
+        });
+        setIsLoading(false);
+        return null;
+      }
+
       const { data, error } = await supabase.functions.invoke('check-subscription');
       
       if (error) throw error;
@@ -97,10 +127,20 @@ export function useSubscription() {
       return data;
     } catch (error) {
       console.error('Error checking subscription:', error);
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível verificar seu status de assinatura',
-        variant: 'destructive',
+      // Don't show toast if user is not authenticated to avoid unnecessary error messages
+      if (isAuthenticated) {
+        toast({
+          title: 'Erro',
+          description: 'Não foi possível verificar seu status de assinatura',
+          variant: 'destructive',
+        });
+      }
+      // Set a default status when there's an error
+      setSubscriptionStatus({
+        active: false,
+        plan: null,
+        current_period_end: null,
+        cancel_at_period_end: false
       });
       return null;
     } finally {
@@ -112,6 +152,18 @@ export function useSubscription() {
   const subscribeToPlan = async (planId: string, billingInterval: 'month' | 'year' = 'month') => {
     setIsCheckoutLoading(true);
     try {
+      const isUserAuthenticated = await checkAuth();
+      if (!isUserAuthenticated) {
+        toast({
+          title: 'Atenção',
+          description: 'Você precisa estar logado para assinar um plano',
+          variant: 'default',
+        });
+        navigate('/login');
+        setIsCheckoutLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: {
           planId,
@@ -140,6 +192,18 @@ export function useSubscription() {
   const openCustomerPortal = async () => {
     setIsPortalLoading(true);
     try {
+      const isUserAuthenticated = await checkAuth();
+      if (!isUserAuthenticated) {
+        toast({
+          title: 'Atenção',
+          description: 'Você precisa estar logado para gerenciar sua assinatura',
+          variant: 'default',
+        });
+        navigate('/login');
+        setIsPortalLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke('customer-portal', {
         body: {
           returnUrl: window.location.origin + '/dashboard',
@@ -164,14 +228,24 @@ export function useSubscription() {
 
   // Initialize
   useEffect(() => {
-    fetchPlans();
-    checkSubscription();
+    const initializeSubscription = async () => {
+      await fetchPlans();
+      const isUserAuthenticated = await checkAuth();
+      if (isUserAuthenticated) {
+        await checkSubscription();
+      } else {
+        setIsLoading(false);
+      }
+    };
+
+    initializeSubscription();
 
     // Listen for auth changes
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      setIsAuthenticated(!!session);
       if (event === 'SIGNED_IN') {
-        checkSubscription();
-        fetchPlans();
+        await fetchPlans();
+        await checkSubscription();
       } else if (event === 'SIGNED_OUT') {
         setSubscriptionStatus(null);
       }
@@ -188,8 +262,10 @@ export function useSubscription() {
     isLoading,
     isCheckoutLoading,
     isPortalLoading,
+    isAuthenticated,
     checkSubscription,
     subscribeToPlan,
     openCustomerPortal,
+    fetchPlans
   };
 }

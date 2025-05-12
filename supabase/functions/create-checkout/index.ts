@@ -29,7 +29,14 @@ serve(async (req) => {
     });
     
     // Get request data
-    const { planId, interval = "month", returnUrl } = await req.json();
+    let requestData;
+    try {
+      requestData = await req.json();
+    } catch (error) {
+      throw new Error("Falha ao processar os dados da requisição");
+    }
+    
+    const { planId, interval = "month", returnUrl } = requestData;
     
     // Validate request
     if (!planId) {
@@ -60,11 +67,15 @@ serve(async (req) => {
     }
     
     // Check if user already has a customer ID
-    const { data: subscriptionData } = await supabase
+    const { data: subscriptionData, error: subscriptionError } = await supabase
       .from("user_subscriptions")
       .select("stripe_customer_id")
       .eq("user_id", user.id)
       .maybeSingle();
+    
+    if (subscriptionError) {
+      console.error("Error fetching user subscription:", subscriptionError);
+    }
     
     let customerId = subscriptionData?.stripe_customer_id;
     
@@ -173,8 +184,8 @@ serve(async (req) => {
         },
       ],
       mode: "subscription",
-      success_url: `${returnUrl || req.headers.get("origin")}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${returnUrl || req.headers.get("origin")}/payment-canceled`,
+      success_url: `${returnUrl || req.headers.get("origin") || window.location.origin}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${returnUrl || req.headers.get("origin") || window.location.origin}/payment-canceled`,
       metadata: {
         plan_id: plan.id,
         user_id: user.id,
