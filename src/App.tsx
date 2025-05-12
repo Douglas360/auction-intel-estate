@@ -11,6 +11,9 @@ import SimulatorPage from "./pages/SimulatorPage";
 import Admin from "./pages/Admin";
 import UserDashboard from "./pages/UserDashboard";
 import NotFound from "./pages/NotFound";
+import PricingPage from "./pages/PricingPage";
+import PaymentSuccess from "./pages/PaymentSuccess";
+import PaymentCanceled from "./pages/PaymentCanceled";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +31,9 @@ const App = () => (
           <Route path="/simulator" element={<SimulatorPage />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/dashboard" element={<UserDashboard />} />
+          <Route path="/pricing" element={<PricingPage />} />
+          <Route path="/payment-success" element={<PaymentSuccess />} />
+          <Route path="/payment-canceled" element={<PaymentCanceled />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

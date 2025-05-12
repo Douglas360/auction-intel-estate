@@ -1,9 +1,11 @@
+
 import React, { useState } from 'react';
 import Navbar from '@/components/Navbar';
 import UserDashboardHeader from '@/components/UserDashboardHeader';
 import UserFavorites from '@/components/UserFavorites';
 import UserAlerts from '@/components/UserAlerts';
 import UserProfile from '@/components/UserProfile';
+import UserSubscription from '@/components/UserSubscription';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SearchFilters from '@/components/SearchFilters';
 import PropertyCard from '@/components/PropertyCard';
@@ -89,6 +91,11 @@ const UserDashboard = () => {
         {/* Dashboard Header with Welcome and Summary */}
         <UserDashboardHeader user={mockUser} />
         
+        {/* User Subscription */}
+        <div className="mt-6">
+          <UserSubscription />
+        </div>
+        
         {/* Main Dashboard Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
           <TabsList className="grid grid-cols-5 mb-6">
@@ -162,7 +169,7 @@ const UserDashboard = () => {
           </TabsContent>
         </Tabs>
         
-        {/* Profile section accessible via a modal or separate page */}
+        {/* Profile section */}
         <div className="mt-8">
           <h2 className="text-2xl font-semibold mb-4">Meu Perfil</h2>
           <UserProfile user={mockUser} />

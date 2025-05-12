@@ -1,158 +1,248 @@
 
-import React from 'react';
-import { Button } from "@/components/ui/button";
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
-import { MapPin, Calendar, Search, FileText, DollarSign, Bell } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Search, ArrowRight } from "lucide-react";
+import { useSubscription, SubscriptionPlan } from '@/hooks/useSubscription';
+import SubscriptionPlanCard from "@/components/subscription/SubscriptionPlanCard";
+import PricingToggle from "@/components/subscription/PricingToggle";
 
 const Index = () => {
+  const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isYearly, setIsYearly] = useState(false);
+  const { plans, subscribeToPlan, subscriptionStatus, isLoading } = useSubscription();
+  const [activePlans, setActivePlans] = useState<SubscriptionPlan[]>([]);
+
+  // Filter to show only paid plans on homepage
+  useEffect(() => {
+    if (plans.length > 0) {
+      setActivePlans(plans.filter(plan => plan.price_monthly > 0));
+    }
+  }, [plans]);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+    }
+  };
+
+  const handleSubscribe = (planId: string) => {
+    subscribeToPlan(planId, isYearly ? 'year' : 'month');
+  };
+
+  const isCurrentPlan = (planId: string) => {
+    return subscriptionStatus?.active && subscriptionStatus.plan?.id === planId;
+  };
+
   return (
-    <div className="flex flex-col min-h-screen">
+    <>
       <Navbar />
-      
-      {/* Hero Section */}
-      <section className="pt-24 pb-12 px-4 md:px-6 bg-gradient-to-br from-auction-primary to-auction-secondary text-white">
-        <div className="container mx-auto max-w-6xl">
-          <div className="grid grid-cols-1 md:grid-cols-2 items-center gap-10">
-            <div className="space-y-6">
-              <h1 className="text-4xl md:text-5xl font-bold leading-tight animate-fade-in">
-                Encontre as melhores oportunidades em leilões imobiliários
-              </h1>
-              <p className="text-lg opacity-90">
-                Centralizamos e analisamos imóveis de leilões judiciais e extrajudiciais para você investir com inteligência e segurança.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Button size="lg" asChild className="bg-white text-auction-primary hover:bg-gray-100">
-                  <Link to="/search">Buscar Imóveis</Link>
-                </Button>
-                <Button size="lg" variant="outline" asChild className="border-white text-white hover:bg-white hover:text-auction-primary">
-                  <Link to="/simulator">Simular Rentabilidade</Link>
-                </Button>
-              </div>
-            </div>
-            <div className="hidden md:block">
-              <img 
-                src="/placeholder.svg" 
-                alt="Imóveis em leilão" 
-                className="rounded-lg shadow-xl transform rotate-2 hover:rotate-0 transition-transform duration-300" 
-              />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="py-16 px-4 md:px-6 bg-white">
-        <div className="container mx-auto max-w-6xl">
-          <h2 className="text-3xl font-bold text-center mb-12">Como funciona</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-gray-50 rounded-lg p-6 text-center shadow-sm hover:shadow-md transition-all">
-              <div className="w-16 h-16 bg-auction-primary rounded-full flex items-center justify-center mx-auto mb-4">
-                <Search className="h-8 w-8 text-white" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Busque Imóveis</h3>
-              <p className="text-gray-600">Acesse nossa base com imóveis de diversos leilões, judiciais e extrajudiciais, e filtre de acordo com suas preferências.</p>
-            </div>
+      <div className="pt-20">
+        {/* Hero section */}
+        <div className="relative bg-gray-900 text-white">
+          <div className="absolute inset-0 bg-[url('/placeholder.svg')] opacity-20 bg-cover bg-center" />
+          <div className="relative container mx-auto px-4 py-24 flex flex-col items-center text-center">
+            <h1 className="text-4xl md:text-5xl font-extrabold mb-6 max-w-4xl">
+              Encontre as melhores oportunidades de imóveis em leilões
+            </h1>
+            <p className="text-xl md:text-2xl mb-8 max-w-3xl opacity-90">
+              Imóveis com até 50% de desconto do valor de mercado. Sua chance de fazer o melhor investimento.
+            </p>
             
-            <div className="bg-gray-50 rounded-lg p-6 text-center shadow-sm hover:shadow-md transition-all">
-              <div className="w-16 h-16 bg-auction-primary rounded-full flex items-center justify-center mx-auto mb-4">
-                <FileText className="h-8 w-8 text-white" />
+            <form onSubmit={handleSearch} className="flex w-full max-w-lg mb-10">
+              <div className="relative flex-grow">
+                <Search className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder="Buscar por cidade, bairro ou tipo de imóvel..."
+                  className="pl-10 h-12 text-gray-900"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
               </div>
-              <h3 className="text-xl font-semibold mb-2">Analise os Riscos</h3>
-              <p className="text-gray-600">Faça upload da matrícula do imóvel e receba uma análise detalhada dos riscos jurídicos envolvidos na compra.</p>
-            </div>
+              <Button type="submit" className="ml-2 h-12">
+                Buscar
+              </Button>
+            </form>
             
-            <div className="bg-gray-50 rounded-lg p-6 text-center shadow-sm hover:shadow-md transition-all">
-              <div className="w-16 h-16 bg-auction-primary rounded-full flex items-center justify-center mx-auto mb-4">
-                <DollarSign className="h-8 w-8 text-white" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Simule o Lucro</h3>
-              <p className="text-gray-600">Utilize nossa calculadora de rentabilidade para projetar o retorno financeiro da operação de compra e revenda.</p>
+            <div className="flex space-x-4">
+              <Button onClick={() => navigate('/properties')} variant="outline" className="bg-white text-gray-900 hover:bg-gray-100">
+                Ver Todos Imóveis
+              </Button>
+              <Button onClick={() => navigate('/simulator')} variant="secondary">
+                Simulador de Lucro
+              </Button>
             </div>
           </div>
         </div>
-      </section>
-
-      {/* Stats Section */}
-      <section className="py-16 px-4 md:px-6 bg-gray-50">
-        <div className="container mx-auto max-w-6xl">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-center">
-            <div>
-              <p className="text-4xl font-bold text-auction-primary mb-2">2.500+</p>
-              <p className="text-gray-600">Imóveis cadastrados</p>
-            </div>
-            <div>
-              <p className="text-4xl font-bold text-auction-primary mb-2">35%</p>
-              <p className="text-gray-600">Desconto médio</p>
-            </div>
-            <div>
-              <p className="text-4xl font-bold text-auction-primary mb-2">48h</p>
-              <p className="text-gray-600">Análise jurídica</p>
-            </div>
-            <div>
-              <p className="text-4xl font-bold text-auction-primary mb-2">500+</p>
-              <p className="text-gray-600">Investidores ativos</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-16 px-4 md:px-6 bg-auction-primary text-white">
-        <div className="container mx-auto max-w-3xl text-center">
-          <h2 className="text-3xl font-bold mb-4">Receba alertas de novas oportunidades</h2>
-          <p className="text-lg opacity-90 mb-8">
-            Cadastre-se para receber notificações quando surgir um imóvel que corresponda aos seus critérios de investimento.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" asChild className="bg-white text-auction-primary hover:bg-gray-100">
-              <Link to="/signup">Criar conta grátis</Link>
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="py-8 px-4 md:px-6 bg-gray-900 text-gray-400">
-        <div className="container mx-auto max-w-6xl">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div>
-              <h3 className="text-white font-bold text-lg mb-4">LeiloaImobi</h3>
-              <p className="text-sm">
-                Plataforma de análise e oportunidades em leilões imobiliários.
+        
+        {/* Subscription plan section */}
+        <div className="bg-gray-50 py-16">
+          <div className="container mx-auto px-4">
+            <div className="text-center max-w-3xl mx-auto mb-10">
+              <h2 className="text-3xl font-bold mb-4">Escolha o Plano Ideal Para Você</h2>
+              <p className="text-gray-600">
+                Tenha acesso ao maior banco de dados de imóveis em leilão do Brasil e ferramentas exclusivas para ampliar seus resultados.
               </p>
             </div>
-            <div>
-              <h4 className="text-white font-bold mb-4">Links Rápidos</h4>
-              <ul className="space-y-2">
-                <li><Link to="/search" className="hover:text-white transition-colors">Buscar Imóveis</Link></li>
-                <li><Link to="/simulator" className="hover:text-white transition-colors">Simulador de Lucro</Link></li>
-                <li><Link to="/legal" className="hover:text-white transition-colors">Análise de Risco</Link></li>
-              </ul>
+            
+            <PricingToggle isYearly={isYearly} onToggle={() => setIsYearly(!isYearly)} />
+            
+            {activePlans.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
+                {activePlans.map((plan) => (
+                  <SubscriptionPlanCard
+                    key={plan.id}
+                    plan={plan}
+                    isCurrentPlan={isCurrentPlan(plan.id)}
+                    isLoading={isLoading}
+                    billingInterval={isYearly ? 'year' : 'month'}
+                    onSubscribe={handleSubscribe}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-10">
+                <p>Carregando planos...</p>
+              </div>
+            )}
+            
+            <div className="text-center mt-8">
+              <Button onClick={() => navigate('/pricing')} variant="outline" className="text-lg">
+                Ver Detalhes dos Planos <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
             </div>
-            <div>
-              <h4 className="text-white font-bold mb-4">Recursos</h4>
-              <ul className="space-y-2">
-                <li><a href="#" className="hover:text-white transition-colors">Guia de Leilões</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Blog</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">FAQ</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-white font-bold mb-4">Contato</h4>
-              <ul className="space-y-2">
-                <li>contato@leiloaimobi.com.br</li>
-                <li>(11) 3456-7890</li>
-              </ul>
-            </div>
-          </div>
-          <div className="border-t border-gray-800 mt-8 pt-6 text-sm text-center">
-            <p>&copy; 2025 LeiloaImobi. Todos os direitos reservados.</p>
           </div>
         </div>
-      </footer>
-    </div>
+        
+        {/* How it works section */}
+        <div className="py-16 bg-white">
+          <div className="container mx-auto px-4">
+            <div className="text-center max-w-3xl mx-auto mb-12">
+              <h2 className="text-3xl font-bold mb-4">Como Funciona</h2>
+              <p className="text-gray-600">
+                Três passos simples para encontrar e adquirir imóveis com descontos incríveis.
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <Card className="p-6 border-t-4 border-auction-primary">
+                <div className="rounded-full bg-auction-primary/10 w-12 h-12 flex items-center justify-center mb-4">
+                  <span className="text-xl font-bold text-auction-primary">1</span>
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Busque Imóveis</h3>
+                <p className="text-gray-600">
+                  Use nossos filtros avançados para encontrar imóveis em leilão que atendam aos seus critérios de investimento.
+                </p>
+              </Card>
+              
+              <Card className="p-6 border-t-4 border-auction-primary">
+                <div className="rounded-full bg-auction-primary/10 w-12 h-12 flex items-center justify-center mb-4">
+                  <span className="text-xl font-bold text-auction-primary">2</span>
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Analise Riscos</h3>
+                <p className="text-gray-600">
+                  Use nossa ferramenta de análise jurídica para avaliar os riscos e potenciais problemas do leilão.
+                </p>
+              </Card>
+              
+              <Card className="p-6 border-t-4 border-auction-primary">
+                <div className="rounded-full bg-auction-primary/10 w-12 h-12 flex items-center justify-center mb-4">
+                  <span className="text-xl font-bold text-auction-primary">3</span>
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Participe do Leilão</h3>
+                <p className="text-gray-600">
+                  Com tudo analisado, participe do leilão com segurança e adquira o imóvel com desconto.
+                </p>
+              </Card>
+            </div>
+          </div>
+        </div>
+        
+        {/* Featured properties section */}
+        <div className="py-16 bg-gray-50">
+          <div className="container mx-auto px-4">
+            <div className="text-center max-w-3xl mx-auto mb-10">
+              <h2 className="text-3xl font-bold mb-4">Imóveis em Destaque</h2>
+              <p className="text-gray-600">
+                Confira algumas das melhores oportunidades disponíveis agora.
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* Featured properties will be displayed here */}
+              <Card className="overflow-hidden">
+                <div className="aspect-video relative bg-gray-200">
+                  <img src="/placeholder.svg" alt="Imóvel" className="w-full h-full object-cover" />
+                  <Badge className="absolute top-2 right-2 bg-green-500">30% OFF</Badge>
+                </div>
+                <div className="p-4">
+                  <h3 className="font-semibold mb-1 truncate">Apartamento 3 dormitórios na Vila Mariana</h3>
+                  <p className="text-sm text-gray-500 mb-3">São Paulo, SP</p>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="text-sm text-gray-500">Valor de mercado:</p>
+                      <p className="text-sm line-through">R$ 650.000</p>
+                      <p className="text-lg font-bold text-auction-primary">R$ 455.000</p>
+                    </div>
+                    <Button size="sm">Ver Detalhes</Button>
+                  </div>
+                </div>
+              </Card>
+              
+              <Card className="overflow-hidden">
+                <div className="aspect-video relative bg-gray-200">
+                  <img src="/placeholder.svg" alt="Imóvel" className="w-full h-full object-cover" />
+                  <Badge className="absolute top-2 right-2 bg-green-500">40% OFF</Badge>
+                </div>
+                <div className="p-4">
+                  <h3 className="font-semibold mb-1 truncate">Casa em condomínio fechado</h3>
+                  <p className="text-sm text-gray-500 mb-3">Cotia, SP</p>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="text-sm text-gray-500">Valor de mercado:</p>
+                      <p className="text-sm line-through">R$ 850.000</p>
+                      <p className="text-lg font-bold text-auction-primary">R$ 510.000</p>
+                    </div>
+                    <Button size="sm">Ver Detalhes</Button>
+                  </div>
+                </div>
+              </Card>
+              
+              <Card className="overflow-hidden">
+                <div className="aspect-video relative bg-gray-200">
+                  <img src="/placeholder.svg" alt="Imóvel" className="w-full h-full object-cover" />
+                  <Badge className="absolute top-2 right-2 bg-green-500">35% OFF</Badge>
+                </div>
+                <div className="p-4">
+                  <h3 className="font-semibold mb-1 truncate">Sala comercial no Centro</h3>
+                  <p className="text-sm text-gray-500 mb-3">Rio de Janeiro, RJ</p>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="text-sm text-gray-500">Valor de mercado:</p>
+                      <p className="text-sm line-through">R$ 380.000</p>
+                      <p className="text-lg font-bold text-auction-primary">R$ 247.000</p>
+                    </div>
+                    <Button size="sm">Ver Detalhes</Button>
+                  </div>
+                </div>
+              </Card>
+            </div>
+            
+            <div className="text-center mt-8">
+              <Button variant="default" onClick={() => navigate('/properties')} className="text-lg">
+                Ver Todos os Imóveis <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
   );
 };
 

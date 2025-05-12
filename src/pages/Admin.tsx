@@ -8,8 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Search, Plus, Edit, Trash, User, Home, Gavel, AlertTriangle, MapPin, Calendar } from 'lucide-react';
+import { Search, Plus, Edit, Trash, User, Home, Gavel, AlertTriangle, MapPin, Calendar, CreditCard } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
+import SubscriptionPlansAdmin from './admin/SubscriptionPlans';
 
 // Mock data for the admin dashboard
 const mockProperties = [
@@ -154,16 +155,17 @@ const Admin = () => {
         </div>
         
         <Tabs defaultValue="dashboard" value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="properties">Imóveis</TabsTrigger>
             <TabsTrigger value="users">Usuários</TabsTrigger>
+            <TabsTrigger value="subscriptions">Assinaturas</TabsTrigger>
             <TabsTrigger value="settings">Configurações</TabsTrigger>
           </TabsList>
           
           {/* Dashboard Tab */}
           <TabsContent value="dashboard">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Total de Imóveis</CardTitle>
@@ -197,6 +199,18 @@ const Admin = () => {
                   <div className="text-2xl font-bold">{mockUsers.length}</div>
                   <p className="text-xs text-muted-foreground">
                     +1 novo usuário esta semana
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Assinantes Premium</CardTitle>
+                  <CreditCard className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">3</div>
+                  <p className="text-xs text-muted-foreground">
+                    +1 novo assinante esta semana
                   </p>
                 </CardContent>
               </Card>
@@ -608,6 +622,11 @@ const Admin = () => {
                 </table>
               </div>
             </div>
+          </TabsContent>
+          
+          {/* Subscriptions Tab */}
+          <TabsContent value="subscriptions">
+            <SubscriptionPlansAdmin />
           </TabsContent>
           
           {/* Settings Tab */}
