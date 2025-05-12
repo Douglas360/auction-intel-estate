@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 
 export type SubscriptionPlan = {
@@ -44,7 +44,19 @@ export function useSubscription() {
         .order('price_monthly', { ascending: true });
 
       if (error) throw error;
-      setPlans(data || []);
+      
+      // Convert data to SubscriptionPlan type, ensuring benefits are properly handled
+      const typedPlans: SubscriptionPlan[] = (data || []).map((plan: any) => ({
+        ...plan,
+        benefits: Array.isArray(plan.benefits) 
+          ? plan.benefits 
+          : typeof plan.benefits === 'string' 
+            ? [plan.benefits] 
+            : plan.benefits ? JSON.parse(typeof plan.benefits === 'string' ? plan.benefits : JSON.stringify(plan.benefits))
+            : []
+      }));
+      
+      setPlans(typedPlans);
     } catch (error) {
       console.error('Error fetching plans:', error);
       toast({

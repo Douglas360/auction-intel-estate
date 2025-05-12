@@ -5,6 +5,7 @@ import Navbar from '@/components/Navbar';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { Search, ArrowRight } from "lucide-react";
 import { useSubscription, SubscriptionPlan } from '@/hooks/useSubscription';
 import SubscriptionPlanCard from "@/components/subscription/SubscriptionPlanCard";

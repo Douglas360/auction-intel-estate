@@ -11,16 +11,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Check } from 'lucide-react';
+import { type SubscriptionPlan as SubscriptionPlanType } from '@/hooks/useSubscription';
 
-export type SubscriptionPlan = {
-  id: string;
-  title: string;
-  description?: string;
-  price_monthly: number;
-  price_annual: number;
-  benefits?: string[];
-  status: string;
-};
+export type SubscriptionPlan = SubscriptionPlanType;
 
 type SubscriptionPlanCardProps = {
   plan: SubscriptionPlan;
