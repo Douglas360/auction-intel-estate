@@ -15,7 +15,9 @@ import { Plus, Edit, Trash, CreditCard, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import SubscriptionPlanForm from '@/components/admin/SubscriptionPlanForm';
+import { Json } from '@/integrations/supabase/types';
 
+// Define the type for the subscription plans
 type SubscriptionPlan = {
   id: string;
   title: string;
@@ -55,13 +57,43 @@ const SubscriptionPlansAdmin = () => {
         .order('price_monthly', { ascending: true });
 
       if (error) throw error;
-      setPlans(data || []);
+      
+      // Process the data to ensure benefits is properly typed as string[]
+      const processedPlans: SubscriptionPlan[] = (data || []).map(plan => ({
+        ...plan,
+        benefits: processBenefits(plan.benefits)
+      }));
+      
+      setPlans(processedPlans);
     } catch (error) {
       console.error('Error fetching plans:', error);
       toast.error('Erro ao carregar os planos de assinatura.');
     } finally {
       setIsLoading(false);
     }
+  };
+  
+  // Helper function to process benefits data from different formats
+  const processBenefits = (benefits: Json | null): string[] | null => {
+    if (!benefits) return null;
+    
+    if (Array.isArray(benefits)) {
+      return benefits.map(b => String(b));
+    }
+    
+    if (typeof benefits === 'string') {
+      try {
+        // Try to parse it as JSON if it's a stringified array
+        const parsed = JSON.parse(benefits);
+        return Array.isArray(parsed) ? parsed.map(b => String(b)) : [benefits];
+      } catch {
+        // If parsing fails, treat it as a single string
+        return [benefits];
+      }
+    }
+    
+    // If it's an object or other type, convert to string and return as array
+    return [String(benefits)];
   };
 
   // Delete plan
@@ -184,7 +216,7 @@ const SubscriptionPlansAdmin = () => {
                 <div className="p-6">
                   <h4 className="text-sm font-medium mb-2">Benefícios:</h4>
                   <ul className="list-disc list-inside text-sm space-y-1 text-gray-600">
-                    {plan.benefits && Array.isArray(plan.benefits) ? (
+                    {plan.benefits && Array.isArray(plan.benefits) && plan.benefits.length > 0 ? (
                       plan.benefits.map((benefit, index) => (
                         <li key={index}>{benefit}</li>
                       ))

@@ -24,6 +24,7 @@ import {
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Separator } from '@/components/ui/separator';
+import { Json } from '@/integrations/supabase/types';
 
 // Define the form schema
 const formSchema = z.object({
@@ -111,14 +112,18 @@ const SubscriptionPlanForm: React.FC<SubscriptionPlanFormProps> = ({
     setIsLoading(true);
     
     try {
-      // Format benefits as an array
+      // Format benefits as an array for JSON compatibility
       const parsedBenefits = values.benefits
         ? values.benefits.split('\n').filter(line => line.trim() !== '')
         : [];
         
       const planData = {
-        ...values,
-        benefits: parsedBenefits,
+        title: values.title,
+        description: values.description,
+        price_monthly: values.price_monthly,
+        price_annual: values.price_annual,
+        benefits: parsedBenefits as Json,
+        status: values.status,
         updated_at: new Date().toISOString(),
       };
       
@@ -133,7 +138,7 @@ const SubscriptionPlanForm: React.FC<SubscriptionPlanFormProps> = ({
         // Create new plan
         operation = supabase
           .from('subscription_plans')
-          .insert([planData]);
+          .insert(planData);
       }
       
       const { error } = await operation;

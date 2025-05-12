@@ -3,18 +3,19 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { Json } from '@/integrations/supabase/types';
 
 export type SubscriptionPlan = {
   id: string;
   title: string;
-  description?: string;
+  description?: string | null;
   price_monthly: number;
   price_annual: number;
-  benefits?: string[] | string;
+  benefits?: string[] | null;
   status: string;
-  stripe_product_id?: string;
-  stripe_price_id_monthly?: string;
-  stripe_price_id_annual?: string;
+  stripe_product_id?: string | null;
+  stripe_price_id_monthly?: string | null;
+  stripe_price_id_annual?: string | null;
 };
 
 export type SubscriptionStatus = {
@@ -34,6 +35,29 @@ export function useSubscription() {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  // Helper function to process benefits data from different formats
+  const processBenefits = (benefits: Json | null): string[] | null => {
+    if (!benefits) return null;
+    
+    if (Array.isArray(benefits)) {
+      return benefits.map(b => String(b));
+    }
+    
+    if (typeof benefits === 'string') {
+      try {
+        // Try to parse it as JSON if it's a stringified array
+        const parsed = JSON.parse(benefits);
+        return Array.isArray(parsed) ? parsed.map(b => String(b)) : [benefits];
+      } catch {
+        // If parsing fails, treat it as a single string
+        return [benefits];
+      }
+    }
+    
+    // If it's an object or other type, convert to string and return as array
+    return [String(benefits)];
+  };
+
   // Fetch all available plans
   const fetchPlans = async () => {
     try {
@@ -46,14 +70,9 @@ export function useSubscription() {
       if (error) throw error;
       
       // Convert data to SubscriptionPlan type, ensuring benefits are properly handled
-      const typedPlans: SubscriptionPlan[] = (data || []).map((plan: any) => ({
+      const typedPlans: SubscriptionPlan[] = (data || []).map(plan => ({
         ...plan,
-        benefits: Array.isArray(plan.benefits) 
-          ? plan.benefits 
-          : typeof plan.benefits === 'string' 
-            ? [plan.benefits] 
-            : plan.benefits ? JSON.parse(typeof plan.benefits === 'string' ? plan.benefits : JSON.stringify(plan.benefits))
-            : []
+        benefits: processBenefits(plan.benefits)
       }));
       
       setPlans(typedPlans);
