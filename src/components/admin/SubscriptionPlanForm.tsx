@@ -163,7 +163,7 @@ const SubscriptionPlanForm: React.FC<SubscriptionPlanFormProps> = ({
         ? values.benefits.split('\n').filter(line => line.trim() !== '')
         : [];
         
-      const planData = {
+      const planData: any = {
         title: values.title,
         description: values.description,
         price_monthly: values.price_monthly,
@@ -173,13 +173,15 @@ const SubscriptionPlanForm: React.FC<SubscriptionPlanFormProps> = ({
         updated_at: new Date().toISOString(),
       };
       
+      // If we have a planId, add it to the data for updates
+      if (planId) {
+        planData.id = planId;
+      }
+      
       let operation;
-      let planId;
       
       if (planId) {
         // Update existing plan
-        planData.id = planId;
-        
         try {
           // Sync with Stripe first
           const stripeData = await syncWithStripe(planData);
@@ -270,7 +272,7 @@ const SubscriptionPlanForm: React.FC<SubscriptionPlanFormProps> = ({
         )}
         
         {planId && !stripeConnected && (
-          <Alert variant="warning">
+          <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Plano não integrado</AlertTitle>
             <AlertDescription>
