@@ -1,180 +1,148 @@
 
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@12.18.0?target=deno";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.42.0";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.8.0';
+import { Stripe } from 'https://esm.sh/stripe@12.0.0?dts';
+import { corsHeaders } from '../_shared/cors.ts';
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+interface CheckoutPayload {
+  plan_id: string;
+  interval: 'month' | 'year';
+  user_id: string;
+}
 
-serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+Deno.serve(async (req) => {
+  // Lidando com solicitações OPTIONS para habilitar CORS
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
   }
-
+  
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY") || "";
-    
-    if (!stripeKey) {
-      throw new Error("STRIPE_SECRET_KEY não encontrada!");
+    // Obtendo dados da requisição
+    const payload: CheckoutPayload = await req.json();
+    const { plan_id, interval, user_id } = payload;
+
+    // Validando dados da requisição
+    if (!plan_id || !interval || !user_id) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Dados inválidos. É necessário fornecer plan_id, interval e user_id'
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400 
+        }
+      );
     }
-    
-    const supabase = createClient(supabaseUrl, supabaseKey);
-    const stripe = new Stripe(stripeKey, {
-      apiVersion: "2023-10-16",
+
+    // Configurando o cliente Stripe
+    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
+      apiVersion: '2023-10-16',
     });
-    
-    // Get request data
-    let requestData;
-    try {
-      requestData = await req.json();
-    } catch (error) {
-      throw new Error("Falha ao processar os dados da requisição");
-    }
-    
-    const { planId, interval = "month", returnUrl } = requestData;
-    
-    // Validate request
-    if (!planId) {
-      throw new Error("ID do plano é obrigatório");
-    }
-    
-    // Get user from auth header
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      throw new Error("Usuário não autenticado");
-    }
-    
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-    if (userError || !user) {
-      throw new Error("Usuário não autenticado");
-    }
-    
-    // Get subscription plan from database
+
+    // Configurando o cliente Supabase
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY') || '';
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Buscando informações do plano no banco de dados
     const { data: plan, error: planError } = await supabase
-      .from("subscription_plans")
-      .select("*")
-      .eq("id", planId)
+      .from('subscription_plans')
+      .select('*')
+      .eq('id', plan_id)
       .single();
-      
-    if (planError || !plan) {
-      throw new Error("Plano não encontrado");
+
+    // Verificando se houve erro ao buscar o plano
+    if (planError) {
+      console.error('Erro ao buscar plano:', planError);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Erro ao buscar informações do plano'
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500 
+        }
+      );
     }
-    
-    // Check if user already has a customer ID
-    const { data: subscriptionData, error: subscriptionError } = await supabase
-      .from("user_subscriptions")
-      .select("stripe_customer_id")
-      .eq("user_id", user.id)
+
+    // Verificando se o plano existe
+    if (!plan) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Plano não encontrado'
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 404 
+        }
+      );
+    }
+
+    // Determinando o preço com base no intervalo selecionado
+    const priceId = interval === 'year' 
+      ? plan.stripe_price_id_annual 
+      : plan.stripe_price_id_monthly;
+
+    if (!priceId) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Preço não configurado para este plano'
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400 
+        }
+      );
+    }
+
+    // Buscando informações do usuário
+    const { data: userInfo, error: userError } = await supabase.auth.admin.getUserById(user_id);
+
+    // Verificando se houve erro ao buscar o usuário
+    if (userError || !userInfo.user) {
+      console.error('Erro ao buscar informações do usuário:', userError);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Erro ao buscar informações do usuário'
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500 
+        }
+      );
+    }
+
+    // Buscando cliente no Stripe ou criando um novo
+    const { data: subscription, error: subscriptionError } = await supabase
+      .from('user_subscriptions')
+      .select('stripe_customer_id')
+      .eq('user_id', user_id)
       .maybeSingle();
-    
-    if (subscriptionError) {
-      console.error("Error fetching user subscription:", subscriptionError);
-    }
-    
-    let customerId = subscriptionData?.stripe_customer_id;
-    
-    // If no customer exists, create one
+
+    let customerId = subscription?.stripe_customer_id;
+
+    // Se o usuário não tem um ID de cliente no Stripe, cria um novo
     if (!customerId) {
       const customer = await stripe.customers.create({
-        email: user.email,
+        email: userInfo.user.email,
         metadata: {
-          user_id: user.id,
-        },
+          user_id: user_id
+        }
       });
       customerId = customer.id;
-    }
-    
-    // Determine which price to use based on interval
-    const priceId = interval === "year" ? plan.stripe_price_id_annual : plan.stripe_price_id_monthly;
-    
-    // If plan has no Stripe price ID, create products and prices in Stripe
-    if (!priceId) {
-      console.log("No Stripe price ID found, creating products and prices");
-      
-      // Create product if it doesn't exist
-      if (!plan.stripe_product_id) {
-        const product = await stripe.products.create({
-          name: plan.title,
-          description: plan.description || "",
-          metadata: {
-            plan_id: plan.id,
-          },
-        });
-        
-        // Update product ID in database
-        await supabase
-          .from("subscription_plans")
-          .update({ stripe_product_id: product.id })
-          .eq("id", plan.id);
-          
-        plan.stripe_product_id = product.id;
-      }
-      
-      // Create prices for monthly and annual
-      const priceMonthly = await stripe.prices.create({
-        product: plan.stripe_product_id,
-        unit_amount: Math.round(Number(plan.price_monthly) * 100),
-        currency: "brl",
-        recurring: { interval: "month" },
-        metadata: {
-          plan_id: plan.id,
-        },
-      });
-      
-      const priceAnnual = await stripe.prices.create({
-        product: plan.stripe_product_id,
-        unit_amount: Math.round(Number(plan.price_annual) * 100),
-        currency: "brl",
-        recurring: { interval: "year" },
-        metadata: {
-          plan_id: plan.id,
-        },
-      });
-      
-      // Update price IDs in database
+
+      // Cria ou atualiza o registro de assinatura do usuário
       await supabase
-        .from("subscription_plans")
-        .update({
-          stripe_price_id_monthly: priceMonthly.id,
-          stripe_price_id_annual: priceAnnual.id,
-        })
-        .eq("id", plan.id);
-        
-      // Use the newly created price ID
-      const updatedPriceId = interval === "year" ? priceAnnual.id : priceMonthly.id;
-      
-      // Create checkout session
-      const session = await stripe.checkout.sessions.create({
-        customer: customerId,
-        line_items: [
-          {
-            price: updatedPriceId,
-            quantity: 1,
-          },
-        ],
-        mode: "subscription",
-        success_url: `${returnUrl || req.headers.get("origin")}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${returnUrl || req.headers.get("origin")}/payment-canceled`,
-        metadata: {
-          plan_id: plan.id,
-          user_id: user.id,
-          billing_interval: interval,
-        },
-      });
-      
-      return new Response(JSON.stringify({ url: session.url }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      });
+        .from('user_subscriptions')
+        .upsert({
+          user_id,
+          stripe_customer_id: customerId,
+          status: 'incomplete',
+          subscription_plan_id: plan_id,
+          billing_interval: interval
+        });
     }
-    
-    // If price ID already exists, use it directly
+
+    // Criando sessão de checkout do Stripe
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       line_items: [
@@ -183,36 +151,35 @@ serve(async (req) => {
           quantity: 1,
         },
       ],
-      mode: "subscription",
-      success_url: `${returnUrl || req.headers.get("origin") || window.location.origin}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${returnUrl || req.headers.get("origin") || window.location.origin}/payment-canceled`,
-      metadata: {
-        plan_id: plan.id,
-        user_id: user.id,
-        billing_interval: interval,
-      },
+      mode: 'subscription',
+      success_url: `${req.headers.get('origin')}/payment-success`,
+      cancel_url: `${req.headers.get('origin')}/payment-canceled`,
+      subscription_data: {
+        metadata: {
+          user_id,
+          plan_id
+        }
+      }
     });
-    
-    // Save/update customer ID to user_subscriptions table
-    await supabase
-      .from("user_subscriptions")
-      .upsert({
-        user_id: user.id,
-        stripe_customer_id: customerId,
-        updated_at: new Date().toISOString(),
-      }, {
-        onConflict: 'user_id',
-      });
-    
-    return new Response(JSON.stringify({ url: session.url }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
-  } catch (error) {
-    console.error("Error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 400,
-    });
+
+    // Retorna a URL de checkout
+    return new Response(
+      JSON.stringify({ checkout_url: session.url }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200 
+      }
+    );
+  } catch (err) {
+    console.error('Erro inesperado:', err);
+    return new Response(
+      JSON.stringify({ 
+        error: 'Ocorreu um erro ao processar sua solicitação'
+      }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500 
+      }
+    );
   }
 });

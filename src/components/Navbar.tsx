@@ -14,7 +14,12 @@ const Navbar = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center justify-start">
             <Link to="/" className="flex ml-2 md:mr-24">
-              <span className="self-center text-xl font-semibold sm:text-2xl whitespace-nowrap text-auction-primary">
+              <img 
+                src="/lovable-uploads/60ab9288-419a-4bab-b06a-a51d1669d4ac.png" 
+                alt="LeiloaImobi Logo" 
+                className="h-8" 
+              />
+              <span className="self-center text-xl font-semibold sm:text-2xl whitespace-nowrap text-auction-primary ml-2">
                 LeiloaImobi
               </span>
             </Link>

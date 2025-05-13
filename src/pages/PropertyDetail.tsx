@@ -7,6 +7,8 @@ import Navbar from '@/components/Navbar';
 import RiskAnalyzer from '@/components/RiskAnalyzer';
 import ProfitSimulator from '@/components/ProfitSimulator';
 import { Calendar, MapPin, Home, DollarSign, Clock, Gavel, AlertTriangle } from 'lucide-react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { toast } from "@/components/ui/use-toast";
 
 // For the MVP, we're using mock data
 const propertyData = {
@@ -22,7 +24,7 @@ const propertyData = {
   auctionDate: '2025-06-15',
   auctionType: 'Judicial',
   riskLevel: 'low',
-  imageUrl: '/placeholder.svg',
+  imageUrl: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267',
   description: `Excelente apartamento com 3 dormitórios, sendo 1 suíte, com 92m² de área útil, 2 vagas de garagem, localizado no bairro Morumbi. O condomínio possui área de lazer completa com piscina, salão de festas, academia e playground.
 
 O imóvel está desocupado e precisa de pequena reforma. Existem débitos de condomínio que serão quitados pelo arrematante.
@@ -50,7 +52,80 @@ Leilão judicial da 3ª Vara Cível de São Paulo, processo nº 1002345-67.2023.
   }
 };
 
+// Mock database with properties for the detail page
+const propertiesDatabase = {
+  '1': {
+    ...propertyData
+  },
+  '2': {
+    ...propertyData,
+    id: '2',
+    title: 'Casa em condomínio em Alphaville',
+    type: 'Casa',
+    address: 'Alameda Grajau, 325, Residencial 5',
+    city: 'Barueri',
+    state: 'SP',
+    auctionPrice: 1200000,
+    marketPrice: 1850000,
+    discount: 35,
+    imageUrl: 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914',
+    details: {
+      ...propertyData.details,
+      area: '280m²',
+      bedrooms: 4,
+      bathrooms: 3,
+      parkingSpots: 4
+    }
+  },
+  '3': {
+    ...propertyData,
+    id: '3',
+    title: 'Terreno comercial na Marginal Tietê',
+    type: 'Terreno',
+    address: 'Avenida Marginal Tietê, 2500',
+    city: 'São Paulo',
+    state: 'SP',
+    auctionPrice: 900000,
+    marketPrice: 1300000,
+    discount: 31,
+    imageUrl: 'https://images.unsplash.com/photo-1582407947304-fd86f028f716',
+  }
+};
+
 const PropertyDetail = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  
+  // Get property data based on ID from URL params
+  const property = id ? propertiesDatabase[id as keyof typeof propertiesDatabase] : propertyData;
+  
+  // If property doesn't exist in our mock database, show a message and redirect
+  if (!property) {
+    toast({
+      title: "Imóvel não encontrado",
+      description: "O imóvel que você está procurando não está disponível.",
+      variant: "destructive",
+    });
+    
+    // Redirect after a short delay
+    setTimeout(() => {
+      navigate('/properties');
+    }, 2000);
+    
+    return (
+      <div className="min-h-screen bg-gray-50 pt-20">
+        <Navbar />
+        <div className="container mx-auto max-w-7xl px-4 pt-10">
+          <div className="text-center py-20">
+            <h1 className="text-2xl font-bold mb-4">Imóvel não encontrado</h1>
+            <p className="mb-8">O imóvel que você está procurando não está disponível.</p>
+            <Button onClick={() => navigate('/properties')}>Ver todos os imóveis</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -73,8 +148,8 @@ const PropertyDetail = () => {
             {/* Image Gallery */}
             <div className="bg-white rounded-lg overflow-hidden shadow-sm mb-6">
               <img 
-                src={propertyData.imageUrl || '/placeholder.svg'} 
-                alt={propertyData.title} 
+                src={property.imageUrl} 
+                alt={property.title} 
                 className="w-full h-80 object-cover"
               />
             </div>
@@ -83,28 +158,28 @@ const PropertyDetail = () => {
             <div className="bg-white rounded-lg p-6 shadow-sm mb-6">
               <div className="flex justify-between items-start">
                 <div>
-                  <h1 className="text-3xl font-bold mb-2">{propertyData.title}</h1>
+                  <h1 className="text-3xl font-bold mb-2">{property.title}</h1>
                   <div className="flex items-center text-gray-600 mb-2">
                     <MapPin className="h-4 w-4 mr-1" />
-                    <span>{propertyData.address}, {propertyData.city} - {propertyData.state}</span>
+                    <span>{property.address}, {property.city} - {property.state}</span>
                   </div>
                   <div className="flex items-center space-x-4 text-sm">
                     <div className="flex items-center">
                       <Home className="h-4 w-4 mr-1 text-gray-700" />
-                      <span>{propertyData.type}</span>
+                      <span>{property.type}</span>
                     </div>
                     <div className="flex items-center">
                       <DollarSign className="h-4 w-4 mr-1 text-green-600" />
-                      <span>{formatCurrency(propertyData.auctionPrice)}</span>
+                      <span>{formatCurrency(property.auctionPrice)}</span>
                     </div>
                     <div className="flex items-center">
                       <Calendar className="h-4 w-4 mr-1 text-gray-700" />
-                      <span>{formatDate(propertyData.auctionDate)}</span>
+                      <span>{formatDate(property.auctionDate)}</span>
                     </div>
                   </div>
                 </div>
                 <Badge className="discount-badge text-base">
-                  {propertyData.discount}% abaixo do mercado
+                  {property.discount}% abaixo do mercado
                 </Badge>
               </div>
               

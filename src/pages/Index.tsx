@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -10,6 +10,57 @@ import { Search, ArrowRight } from "lucide-react";
 import { useSubscription, SubscriptionPlan } from '@/hooks/useSubscription';
 import SubscriptionPlanCard from "@/components/subscription/SubscriptionPlanCard";
 import PricingToggle from "@/components/subscription/PricingToggle";
+import PropertyCard from "@/components/PropertyCard";
+import { toast } from "@/components/ui/use-toast";
+
+// Mock data for featured properties
+const featuredProperties = [
+  {
+    id: '1',
+    title: 'Apartamento 3 dormitórios na Vila Mariana',
+    type: 'Apartamento',
+    address: 'Rua Domingos de Morais, 2455, Apto 82',
+    city: 'São Paulo',
+    state: 'SP',
+    auctionPrice: 455000,
+    marketPrice: 650000,
+    discount: 30,
+    auctionDate: '2025-06-15',
+    auctionType: 'Judicial',
+    riskLevel: 'low' as 'low',
+    imageUrl: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267'
+  },
+  {
+    id: '2',
+    title: 'Casa em condomínio fechado',
+    type: 'Casa',
+    address: 'Alameda dos Nhambiquaras, 1050, Casa 14',
+    city: 'Cotia',
+    state: 'SP',
+    auctionPrice: 510000,
+    marketPrice: 850000,
+    discount: 40,
+    auctionDate: '2025-07-10',
+    auctionType: 'Extrajudicial',
+    riskLevel: 'medium' as 'medium',
+    imageUrl: 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914'
+  },
+  {
+    id: '3',
+    title: 'Sala comercial no Centro',
+    type: 'Comercial',
+    address: 'Avenida Paulista, 1578, Sala 302',
+    city: 'Rio de Janeiro',
+    state: 'RJ',
+    auctionPrice: 247000,
+    marketPrice: 380000,
+    discount: 35,
+    auctionDate: '2025-06-28',
+    auctionType: 'Banco',
+    riskLevel: 'high' as 'high',
+    imageUrl: 'https://images.unsplash.com/photo-1497366811353-6870744d04b2'
+  }
+];
 
 const Index = () => {
   const navigate = useNavigate();
@@ -176,63 +227,12 @@ const Index = () => {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {/* Featured properties will be displayed here */}
-              <Card className="overflow-hidden">
-                <div className="aspect-video relative bg-gray-200">
-                  <img src="/placeholder.svg" alt="Imóvel" className="w-full h-full object-cover" />
-                  <Badge className="absolute top-2 right-2 bg-green-500">30% OFF</Badge>
-                </div>
-                <div className="p-4">
-                  <h3 className="font-semibold mb-1 truncate">Apartamento 3 dormitórios na Vila Mariana</h3>
-                  <p className="text-sm text-gray-500 mb-3">São Paulo, SP</p>
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="text-sm text-gray-500">Valor de mercado:</p>
-                      <p className="text-sm line-through">R$ 650.000</p>
-                      <p className="text-lg font-bold text-auction-primary">R$ 455.000</p>
-                    </div>
-                    <Button size="sm">Ver Detalhes</Button>
-                  </div>
-                </div>
-              </Card>
-              
-              <Card className="overflow-hidden">
-                <div className="aspect-video relative bg-gray-200">
-                  <img src="/placeholder.svg" alt="Imóvel" className="w-full h-full object-cover" />
-                  <Badge className="absolute top-2 right-2 bg-green-500">40% OFF</Badge>
-                </div>
-                <div className="p-4">
-                  <h3 className="font-semibold mb-1 truncate">Casa em condomínio fechado</h3>
-                  <p className="text-sm text-gray-500 mb-3">Cotia, SP</p>
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="text-sm text-gray-500">Valor de mercado:</p>
-                      <p className="text-sm line-through">R$ 850.000</p>
-                      <p className="text-lg font-bold text-auction-primary">R$ 510.000</p>
-                    </div>
-                    <Button size="sm">Ver Detalhes</Button>
-                  </div>
-                </div>
-              </Card>
-              
-              <Card className="overflow-hidden">
-                <div className="aspect-video relative bg-gray-200">
-                  <img src="/placeholder.svg" alt="Imóvel" className="w-full h-full object-cover" />
-                  <Badge className="absolute top-2 right-2 bg-green-500">35% OFF</Badge>
-                </div>
-                <div className="p-4">
-                  <h3 className="font-semibold mb-1 truncate">Sala comercial no Centro</h3>
-                  <p className="text-sm text-gray-500 mb-3">Rio de Janeiro, RJ</p>
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="text-sm text-gray-500">Valor de mercado:</p>
-                      <p className="text-sm line-through">R$ 380.000</p>
-                      <p className="text-lg font-bold text-auction-primary">R$ 247.000</p>
-                    </div>
-                    <Button size="sm">Ver Detalhes</Button>
-                  </div>
-                </div>
-              </Card>
+              {featuredProperties.map(property => (
+                <PropertyCard 
+                  key={property.id}
+                  {...property}
+                />
+              ))}
             </div>
             
             <div className="text-center mt-8">

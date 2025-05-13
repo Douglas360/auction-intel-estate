@@ -19,7 +19,7 @@ const mockProperties = [
     auctionDate: '2025-06-15',
     auctionType: 'Judicial',
     riskLevel: 'low' as 'low',
-    imageUrl: '/placeholder.svg'
+    imageUrl: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267'
   },
   {
     id: '2',
@@ -34,7 +34,7 @@ const mockProperties = [
     auctionDate: '2025-06-22',
     auctionType: 'Extrajudicial',
     riskLevel: 'medium' as 'medium',
-    imageUrl: '/placeholder.svg'
+    imageUrl: 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914'
   },
   {
     id: '3',
@@ -49,7 +49,7 @@ const mockProperties = [
     auctionDate: '2025-07-05',
     auctionType: 'Banco',
     riskLevel: 'low' as 'low',
-    imageUrl: '/placeholder.svg'
+    imageUrl: 'https://images.unsplash.com/photo-1582407947304-fd86f028f716'
   },
   {
     id: '4',
@@ -64,7 +64,7 @@ const mockProperties = [
     auctionDate: '2025-06-28',
     auctionType: 'Judicial',
     riskLevel: 'high' as 'high',
-    imageUrl: '/placeholder.svg'
+    imageUrl: 'https://images.unsplash.com/photo-1581578017093-cd30fce4eeb7'
   },
   {
     id: '5',
@@ -79,7 +79,7 @@ const mockProperties = [
     auctionDate: '2025-07-12',
     auctionType: 'Banco',
     riskLevel: 'medium' as 'medium',
-    imageUrl: '/placeholder.svg'
+    imageUrl: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750'
   },
   {
     id: '6',
@@ -94,7 +94,7 @@ const mockProperties = [
     auctionDate: '2025-08-05',
     auctionType: 'Judicial',
     riskLevel: 'high' as 'high',
-    imageUrl: '/placeholder.svg'
+    imageUrl: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef'
   }
 ];
 
