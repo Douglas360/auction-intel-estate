@@ -95,9 +95,23 @@ const Index = () => {
     <>
       <Navbar />
       <div className="pt-20">
-        {/* Hero section */}
+        {/* Hero section with video background */}
         <div className="relative bg-gray-900 text-white">
-          <div className="absolute inset-0 bg-[url('/placeholder.svg')] opacity-20 bg-cover bg-center" />
+          {/* Video Background */}
+          <div className="absolute inset-0 overflow-hidden">
+            <video 
+              className="absolute w-full h-full object-cover"
+              autoPlay 
+              muted 
+              loop 
+              playsInline
+            >
+              <source src="https://static.videezy.com/system/resources/previews/000/042/012/original/B_012612_P.mp4" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+            <div className="absolute inset-0 bg-black opacity-60"></div>
+          </div>
+          
           <div className="relative container mx-auto px-4 py-24 flex flex-col items-center text-center">
             <h1 className="text-4xl md:text-5xl font-extrabold mb-6 max-w-4xl">
               Encontre as melhores oportunidades de imóveis em leilões

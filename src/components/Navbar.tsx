@@ -17,7 +17,7 @@ const Navbar = () => {
               <img 
                 src="/lovable-uploads/60ab9288-419a-4bab-b06a-a51d1669d4ac.png" 
                 alt="LeiloaImobi Logo" 
-                className="h-8" 
+                className="h-10" // Increased from h-8 to h-10
               />              
             </Link>
           </div>
