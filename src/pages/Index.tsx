@@ -106,7 +106,7 @@ const Index = () => {
               loop 
               playsInline
             >
-              <source src="https://static.videezy.com/system/resources/previews/000/042/012/original/B_012612_P.mp4" type="video/mp4" />
+              <source src="https://www.youtube.com/watch?v=ktPrAbE_QUU&pp=ygUPbWFuc29lcyBkZSBsdXhv" type="video/mp4" />
               Your browser does not support the video tag.
             </video>
             <div className="absolute inset-0 bg-black opacity-60"></div>
