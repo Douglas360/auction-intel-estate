@@ -25,7 +25,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Separator } from '@/components/ui/separator';
 import { Json } from '@/integrations/supabase/types';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, CreditCard, Loader2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 // Define the form schema
@@ -129,6 +129,12 @@ const SubscriptionPlanForm: React.FC<SubscriptionPlanFormProps> = ({
       
       const operation = isUpdate ? 'update' : 'create';
       
+      // Make sure we have an authenticated session
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData?.session) {
+        throw new Error("No authenticated session found. Please log in again.");
+      }
+      
       // Call our Stripe sync edge function
       const { data, error } = await supabase.functions.invoke('stripe-sync-plans', {
         body: {
@@ -137,9 +143,12 @@ const SubscriptionPlanForm: React.FC<SubscriptionPlanFormProps> = ({
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Stripe API error:", error);
+        throw error;
+      }
       
-      if (!data.success) {
+      if (!data?.success) {
         throw new Error('Falha ao sincronizar com o Stripe.');
       }
       
@@ -147,7 +156,7 @@ const SubscriptionPlanForm: React.FC<SubscriptionPlanFormProps> = ({
       return data.data || {};
     } catch (error) {
       console.error('Erro na integração com o Stripe:', error);
-      throw new Error('Falha ao integrar com o Stripe. Verifique os logs para mais detalhes.');
+      throw new Error(`Falha ao integrar com o Stripe: ${error.message || 'Verifique os logs para mais detalhes'}`);
     } finally {
       setIsStripeLoading(false);
     }
@@ -420,5 +429,4 @@ const SubscriptionPlanForm: React.FC<SubscriptionPlanFormProps> = ({
   );
 };
 
-import { CreditCard, Loader2 } from 'lucide-react';
 export default SubscriptionPlanForm;

@@ -101,15 +101,24 @@ const SubscriptionPlansAdmin = () => {
   const syncWithStripe = async () => {
     setIsSyncingStripe(true);
     try {
+      // Get user session to ensure we have a valid token
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData?.session) {
+        throw new Error("No authenticated session found");
+      }
+
       const { data, error } = await supabase.functions.invoke('stripe-sync-plans', {
         body: {
           operation: 'sync'
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Stripe sync error:", error);
+        throw error;
+      }
       
-      if (data.success) {
+      if (data?.success) {
         toast.success(`Sincronização concluída! ${data.updates} planos atualizados, ${data.inserts} planos adicionados.`);
         // Refresh plans list
         fetchPlans();
@@ -118,7 +127,7 @@ const SubscriptionPlansAdmin = () => {
       }
     } catch (error) {
       console.error('Error syncing with Stripe:', error);
-      toast.error('Erro ao sincronizar com o Stripe.');
+      toast.error(`Erro ao sincronizar com o Stripe: ${error.message || 'Verifique os logs para mais detalhes'}`);
     } finally {
       setIsSyncingStripe(false);
     }

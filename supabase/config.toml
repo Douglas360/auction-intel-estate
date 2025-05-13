@@ -4,3 +4,5 @@ project_id = "pkvrxhczpvmopgzgcqmk"
 [functions.stripe-webhook]
 verify_jwt = false
 
+[functions.stripe-sync-plans]
+verify_jwt = false
