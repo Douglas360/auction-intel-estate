@@ -8,14 +8,14 @@ import { CheckCircle } from 'lucide-react';
 
 const PaymentSuccess = () => {
   const navigate = useNavigate();
-  const { checkSubscription } = useSubscription();
+  const { checkSubscriptionStatus } = useSubscription();
   const [searchParams] = useSearchParams();
   const sessionId = searchParams.get('session_id');
 
   useEffect(() => {
     // Refresh subscription status
     if (sessionId) {
-      checkSubscription();
+      checkSubscriptionStatus();
     }
   }, [sessionId]);
 

@@ -28,6 +28,8 @@ export const useSubscription = () => {
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isCheckoutLoading, setIsCheckoutLoading] = useState<boolean>(false);
+  const [isPortalLoading, setIsPortalLoading] = useState<boolean>(false);
 
   // Verificar se o usuário está autenticado
   const checkAuthentication = async () => {
@@ -60,6 +62,7 @@ export const useSubscription = () => {
 
   // Verificar o status da assinatura do usuário
   const checkSubscriptionStatus = async () => {
+    setIsLoading(true);
     try {
       // Verifica se o usuário está autenticado
       const user = await checkAuthentication();
@@ -73,6 +76,7 @@ export const useSubscription = () => {
           current_period_end: null,
           cancel_at_period_end: false,
         });
+        setIsLoading(false);
         return;
       }
 
@@ -87,6 +91,7 @@ export const useSubscription = () => {
           description: "Não foi possível verificar seu status de assinatura.",
           variant: "destructive",
         });
+        setIsLoading(false);
         return;
       }
 
@@ -98,12 +103,14 @@ export const useSubscription = () => {
         description: "Não foi possível verificar seu status de assinatura.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   // Assinar um plano
-  const subscribeToPlan = async (planId: string, interval: 'month' | 'year') => {
-    setIsLoading(true);
+  const subscribeToPlan = async (planId: string, interval: 'month' | 'year' = 'month') => {
+    setIsCheckoutLoading(true);
     
     try {
       // Verificar se o usuário está autenticado
@@ -144,7 +151,49 @@ export const useSubscription = () => {
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setIsCheckoutLoading(false);
+    }
+  };
+
+  // Abrir o portal do cliente
+  const openCustomerPortal = async () => {
+    setIsPortalLoading(true);
+    
+    try {
+      // Verificar se o usuário está autenticado
+      const user = await checkAuthentication();
+      
+      if (!user) {
+        toast({
+          title: "Atenção",
+          description: "Você precisa estar logado para gerenciar sua assinatura.",
+          variant: "default",
+        });
+        return;
+      }
+
+      // Obter URL do portal do cliente
+      const { data, error } = await supabase.functions.invoke('customer-portal', {
+        body: { user_id: user.id },
+      });
+
+      if (error) throw error;
+
+      // Redirecionar para o portal do cliente
+      if (data?.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error('URL do portal não encontrada');
+      }
+    } catch (error) {
+      console.error('Erro ao abrir portal do cliente:', error);
+      toast({
+        title: "Erro",
+        description: "Ocorreu um erro ao acessar o portal de gerenciamento.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsPortalLoading(false);
     }
   };
 
@@ -158,9 +207,12 @@ export const useSubscription = () => {
     plans,
     subscriptionStatus,
     isLoading,
+    isCheckoutLoading,
+    isPortalLoading,
     subscribeToPlan,
     fetchPlans,
     checkSubscriptionStatus,
+    openCustomerPortal,
   };
 };
 

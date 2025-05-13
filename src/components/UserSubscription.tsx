@@ -60,7 +60,7 @@ const UserSubscription = () => {
             <p className="text-sm text-gray-500">
               Faça upgrade para um plano premium e aproveite todos os recursos disponíveis.
             </p>
-            <Button onClick={() => subscribeToPlan(freePlan?.id || '')}>
+            <Button onClick={() => subscribeToPlan(freePlan?.id || '', 'month')}>
               Ver Planos Premium
             </Button>
           </div>
