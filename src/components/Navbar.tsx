@@ -18,10 +18,7 @@ const Navbar = () => {
                 src="/lovable-uploads/60ab9288-419a-4bab-b06a-a51d1669d4ac.png" 
                 alt="LeiloaImobi Logo" 
                 className="h-8" 
-              />
-              <span className="self-center text-xl font-semibold sm:text-2xl whitespace-nowrap text-auction-primary ml-2">
-                LeiloaImobi
-              </span>
+              />              
             </Link>
           </div>
           <div className="hidden md:flex items-center space-x-4">
