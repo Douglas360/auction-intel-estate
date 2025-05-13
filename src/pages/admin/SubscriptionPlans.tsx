@@ -11,7 +11,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Plus, Edit, Trash, CreditCard, AlertTriangle } from 'lucide-react';
+import { Plus, Edit, Trash, CreditCard, AlertTriangle, RefreshCw, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import SubscriptionPlanForm from '@/components/admin/SubscriptionPlanForm';
@@ -34,6 +34,7 @@ type SubscriptionPlan = {
 const SubscriptionPlansAdmin = () => {
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSyncingStripe, setIsSyncingStripe] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [editingPlanId, setEditingPlanId] = useState<string | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -96,11 +97,56 @@ const SubscriptionPlansAdmin = () => {
     return [String(benefits)];
   };
 
+  // Sync with Stripe
+  const syncWithStripe = async () => {
+    setIsSyncingStripe(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('stripe-sync-plans', {
+        body: {
+          operation: 'sync'
+        },
+      });
+
+      if (error) throw error;
+      
+      if (data.success) {
+        toast.success(`Sincronização concluída! ${data.updates} planos atualizados, ${data.inserts} planos adicionados.`);
+        // Refresh plans list
+        fetchPlans();
+      } else {
+        throw new Error('Falha na sincronização');
+      }
+    } catch (error) {
+      console.error('Error syncing with Stripe:', error);
+      toast.error('Erro ao sincronizar com o Stripe.');
+    } finally {
+      setIsSyncingStripe(false);
+    }
+  };
+
   // Delete plan
   const deletePlan = async () => {
     if (!deletingPlanId) return;
 
     try {
+      // First check if the plan has a Stripe product ID
+      const planToDelete = plans.find(p => p.id === deletingPlanId);
+      
+      if (planToDelete?.stripe_product_id) {
+        // Delete in Stripe first
+        const { error: stripeError } = await supabase.functions.invoke('stripe-sync-plans', {
+          body: {
+            operation: 'delete',
+            plan: { id: deletingPlanId }
+          },
+        });
+        
+        if (stripeError) {
+          console.error('Error deleting from Stripe:', stripeError);
+          // Continue with local deletion anyway
+        }
+      }
+      
       const { error } = await supabase
         .from('subscription_plans')
         .delete()
@@ -142,9 +188,24 @@ const SubscriptionPlansAdmin = () => {
           <h1 className="text-2xl font-bold">Planos de Assinatura</h1>
           <p className="text-muted-foreground">Gerencie os planos de assinatura disponíveis.</p>
         </div>
-        <Button onClick={() => { setEditingPlanId(null); setFormOpen(true); }}>
-          <Plus className="h-4 w-4 mr-2" /> Novo Plano
-        </Button>
+        <div className="flex space-x-2">
+          <Button 
+            variant="outline" 
+            onClick={syncWithStripe}
+            disabled={isSyncingStripe}
+          >
+            {isSyncingStripe ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : (
+              <RefreshCw className="h-4 w-4 mr-2" />
+            )}
+            Sincronizar com Stripe
+          </Button>
+          
+          <Button onClick={() => { setEditingPlanId(null); setFormOpen(true); }}>
+            <Plus className="h-4 w-4 mr-2" /> Novo Plano
+          </Button>
+        </div>
       </div>
 
       {/* List of plans */}

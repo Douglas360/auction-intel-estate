@@ -14,6 +14,7 @@ import NotFound from "./pages/NotFound";
 import PricingPage from "./pages/PricingPage";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import PaymentCanceled from "./pages/PaymentCanceled";
+import SubscriptionCheckout from "./pages/SubscriptionCheckout";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +33,7 @@ const App = () => (
           <Route path="/admin" element={<Admin />} />
           <Route path="/dashboard" element={<UserDashboard />} />
           <Route path="/pricing" element={<PricingPage />} />
+          <Route path="/subscribe/:planId" element={<SubscriptionCheckout />} />
           <Route path="/payment-success" element={<PaymentSuccess />} />
           <Route path="/payment-canceled" element={<PaymentCanceled />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

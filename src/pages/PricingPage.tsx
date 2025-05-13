@@ -1,23 +1,23 @@
+
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import { useSubscription } from '@/hooks/useSubscription';
 import SubscriptionPlanCard from '@/components/subscription/SubscriptionPlanCard';
 import PricingToggle from '@/components/subscription/PricingToggle';
-import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 
 const PricingPage = () => {
+  const navigate = useNavigate();
   const [isYearly, setIsYearly] = useState(false);
   const { 
     plans, 
-    subscribeToPlan, 
     subscriptionStatus, 
-    isLoading, 
-    isCheckoutLoading 
+    isLoading
   } = useSubscription();
 
   const handleSubscribe = (planId: string) => {
-    subscribeToPlan(planId, isYearly ? 'year' : 'month');
+    navigate(`/subscribe/${planId}`);
   };
 
   const isCurrentPlan = (planId: string) => {
@@ -43,7 +43,7 @@ const PricingPage = () => {
               key={plan.id}
               plan={plan}
               isCurrentPlan={isCurrentPlan(plan.id)}
-              isLoading={isLoading || isCheckoutLoading}
+              isLoading={isLoading}
               billingInterval={isYearly ? 'year' : 'month'}
               onSubscribe={handleSubscribe}
             />

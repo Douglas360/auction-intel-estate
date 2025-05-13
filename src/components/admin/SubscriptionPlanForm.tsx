@@ -25,6 +25,8 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Separator } from '@/components/ui/separator';
 import { Json } from '@/integrations/supabase/types';
+import { AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 // Define the form schema
 const formSchema = z.object({
@@ -48,6 +50,9 @@ const SubscriptionPlanForm: React.FC<SubscriptionPlanFormProps> = ({
   onSuccess,
 }) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [isStripeLoading, setIsStripeLoading] = useState(false);
+  const [originalPlan, setOriginalPlan] = useState<any>(null);
+  const [stripeConnected, setStripeConnected] = useState(false);
 
   // Initialize the form
   const form = useForm<FormValues>({
@@ -78,6 +83,8 @@ const SubscriptionPlanForm: React.FC<SubscriptionPlanFormProps> = ({
         if (error) throw error;
         
         if (data) {
+          setOriginalPlan(data);
+          setStripeConnected(!!data.stripe_product_id);
           // Format benefits for the form
           const benefitsString = data.benefits 
             ? Array.isArray(data.benefits) 
@@ -107,6 +114,45 @@ const SubscriptionPlanForm: React.FC<SubscriptionPlanFormProps> = ({
     fetchPlan();
   }, [planId, form]);
 
+  // Sync with Stripe
+  const syncWithStripe = async (planData: any) => {
+    setIsStripeLoading(true);
+    try {
+      // Check if this is an update or a new plan
+      const isUpdate = !!originalPlan?.stripe_product_id;
+      
+      // Check if prices have changed (for updates)
+      if (isUpdate) {
+        planData.price_monthly_changed = planData.price_monthly !== originalPlan.price_monthly;
+        planData.price_annual_changed = planData.price_annual !== originalPlan.price_annual;
+      }
+      
+      const operation = isUpdate ? 'update' : 'create';
+      
+      // Call our Stripe sync edge function
+      const { data, error } = await supabase.functions.invoke('stripe-sync-plans', {
+        body: {
+          operation,
+          plan: planData,
+        },
+      });
+
+      if (error) throw error;
+      
+      if (!data.success) {
+        throw new Error('Falha ao sincronizar com o Stripe.');
+      }
+      
+      // Return any data from Stripe that we need to save
+      return data.data || {};
+    } catch (error) {
+      console.error('Erro na integração com o Stripe:', error);
+      throw new Error('Falha ao integrar com o Stripe. Verifique os logs para mais detalhes.');
+    } finally {
+      setIsStripeLoading(false);
+    }
+  };
+
   // Handle form submission
   const onSubmit = async (values: FormValues) => {
     setIsLoading(true);
@@ -128,22 +174,61 @@ const SubscriptionPlanForm: React.FC<SubscriptionPlanFormProps> = ({
       };
       
       let operation;
+      let planId;
+      
       if (planId) {
         // Update existing plan
-        operation = supabase
-          .from('subscription_plans')
-          .update(planData)
-          .eq('id', planId);
+        planData.id = planId;
+        
+        try {
+          // Sync with Stripe first
+          const stripeData = await syncWithStripe(planData);
+          
+          // Merge any Stripe data into our plan data
+          Object.assign(planData, stripeData);
+          
+          // Update Supabase
+          operation = supabase
+            .from('subscription_plans')
+            .update(planData)
+            .eq('id', planId);
+        } catch (error) {
+          toast.error(`Erro ao sincronizar com o Stripe: ${error.message}`);
+          setIsLoading(false);
+          return;
+        }
       } else {
-        // Create new plan
-        operation = supabase
+        // First create the plan in Supabase to get an ID
+        const { data: newPlanData, error: insertError } = await supabase
           .from('subscription_plans')
-          .insert(planData);
+          .insert(planData)
+          .select()
+          .single();
+          
+        if (insertError) throw insertError;
+        
+        try {
+          // Then sync the new plan with Stripe
+          const stripeData = await syncWithStripe(newPlanData);
+          
+          // Update the plan with Stripe IDs
+          if (Object.keys(stripeData).length > 0) {
+            operation = supabase
+              .from('subscription_plans')
+              .update(stripeData)
+              .eq('id', newPlanData.id);
+          }
+        } catch (error) {
+          toast.error(`Erro ao sincronizar com o Stripe: ${error.message}`);
+          // We've already created the plan in Supabase, no need to throw
+        }
       }
       
-      const { error } = await operation;
-      
-      if (error) throw error;
+      // Perform final database update if needed
+      if (operation) {
+        const { error } = await operation;
+        if (error) throw error;
+      }
       
       toast.success(planId ? 'Plano atualizado com sucesso!' : 'Plano criado com sucesso!');
       
@@ -173,6 +258,27 @@ const SubscriptionPlanForm: React.FC<SubscriptionPlanFormProps> = ({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        {planId && stripeConnected && (
+          <div className="bg-green-50 border border-green-100 p-3 rounded-md flex items-center">
+            <div className="bg-green-100 rounded-full p-1 mr-3">
+              <CreditCard className="h-5 w-5 text-green-600" />
+            </div>
+            <div className="text-sm text-green-800">
+              Este plano está integrado com o Stripe.
+            </div>
+          </div>
+        )}
+        
+        {planId && !stripeConnected && (
+          <Alert variant="warning">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Plano não integrado</AlertTitle>
+            <AlertDescription>
+              Este plano ainda não está integrado ao Stripe. Ao salvar, será criado automaticamente na sua conta Stripe.
+            </AlertDescription>
+          </Alert>
+        )}
+        
         <FormField
           control={form.control}
           name="title"
@@ -296,10 +402,15 @@ const SubscriptionPlanForm: React.FC<SubscriptionPlanFormProps> = ({
         <div className="flex justify-end space-x-2 pt-4">
           <Button 
             type="submit" 
-            disabled={isLoading}
+            disabled={isLoading || isStripeLoading}
             className="bg-auction-primary hover:bg-auction-secondary"
           >
-            {isLoading ? 'Salvando...' : planId ? 'Atualizar Plano' : 'Criar Plano'}
+            {isLoading || isStripeLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {isStripeLoading ? 'Integrando com Stripe...' : 'Salvando...'}
+              </>
+            ) : planId ? 'Atualizar Plano' : 'Criar Plano'}
           </Button>
         </div>
       </form>
@@ -307,4 +418,5 @@ const SubscriptionPlanForm: React.FC<SubscriptionPlanFormProps> = ({
   );
 };
 
+import { CreditCard, Loader2 } from 'lucide-react';
 export default SubscriptionPlanForm;
