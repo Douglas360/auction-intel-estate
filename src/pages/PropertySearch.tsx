@@ -64,7 +64,7 @@ const mockProperties = [
     auctionDate: '2025-06-28',
     auctionType: 'Judicial',
     riskLevel: 'high' as 'high',
-    imageUrl: 'https://images.unsplash.com/photo-1581578017093-cd30fce4eeb7'
+    imageUrl: 'https://images.unsplash.com/photo-1664425992088-444edfc5f143'
   },
   {
     id: '5',

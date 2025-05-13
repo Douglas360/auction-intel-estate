@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
@@ -97,22 +96,18 @@ const Index = () => {
       <div className="pt-20">
         {/* Hero section with video background */}
         <div className="relative bg-gray-900 text-white">
-          {/* Video Background */}
+          {/* Image Background */}
           <div className="absolute inset-0 overflow-hidden">
-            <video 
+            <img
+              src="https://images.unsplash.com/photo-1497366811353-6870744d04b2"
+              alt="Background"
               className="absolute w-full h-full object-cover"
-              autoPlay 
-              muted 
-              loop 
-              playsInline
-            >
-              <source src="https://www.youtube.com/watch?v=ktPrAbE_QUU&pp=ygUPbWFuc29lcyBkZSBsdXhv" type="video/mp4" />
-              Your browser does not support the video tag.
-            </video>
-            <div className="absolute inset-0 bg-black opacity-60"></div>
+              style={{ zIndex: 1 }}
+            />
+            <div className="absolute inset-0 bg-black opacity-60" style={{ zIndex: 2 }}></div>
           </div>
           
-          <div className="relative container mx-auto px-4 py-24 flex flex-col items-center text-center">
+          <div className="relative container mx-auto px-4 py-24 flex flex-col items-center text-center" style={{ zIndex: 3 }}>
             <h1 className="text-4xl md:text-5xl font-extrabold mb-6 max-w-4xl">
               Encontre as melhores oportunidades de imóveis em leilões
             </h1>
