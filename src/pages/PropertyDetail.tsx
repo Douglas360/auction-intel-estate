@@ -49,6 +49,10 @@ Leilão judicial da 3ª Vara Cível de São Paulo, processo nº 1002345-67.2023.
     secondDate: '2025-06-29',
     minimumBid1: 450000,
     minimumBid2: 315000,
+  },
+  coordinates: {
+    lat: -23.5987,
+    lng: -46.7240
   }
 };
 
@@ -75,6 +79,10 @@ const propertiesDatabase = {
       bedrooms: 4,
       bathrooms: 3,
       parkingSpots: 4
+    },
+    coordinates: {
+      lat: -23.4840,
+      lng: -46.8520
     }
   },
   '3': {
@@ -89,6 +97,10 @@ const propertiesDatabase = {
     marketPrice: 1300000,
     discount: 31,
     imageUrl: 'https://images.unsplash.com/photo-1582407947304-fd86f028f716',
+    coordinates: {
+      lat: -23.5200,
+      lng: -46.6360
+    }
   }
 };
 
@@ -343,8 +355,29 @@ const PropertyDetail = () => {
               </TabsContent>
               
               <TabsContent value="location" className="p-6">
-                <div className="bg-gray-200 rounded-lg h-80 flex items-center justify-center">
-                  <p className="text-gray-600">Mapa indisponível no MVP</p>
+                <h3 className="text-xl font-semibold mb-3">Localização do Imóvel</h3>
+                <p className="text-gray-600 mb-4">
+                  {property.address}, {property.city} - {property.state}
+                </p>
+                <div className="bg-white rounded-lg h-[400px] mb-4 overflow-hidden">
+                  <iframe
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0 }}
+                    loading="lazy"
+                    allowFullScreen
+                    referrerPolicy="no-referrer-when-downgrade"
+                    src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBLo0Vh9TmVkFUSFDRUwgEf6LFcR17tKFw&q=${encodeURIComponent(
+                      `${property.address}, ${property.city}, ${property.state}`
+                    )}&center=${property.coordinates.lat},${property.coordinates.lng}&zoom=15`}
+                  ></iframe>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mt-4">
+                  <h4 className="font-semibold mb-2">Sobre a região</h4>
+                  <p className="text-sm text-gray-600">
+                    Verifique a segurança do bairro, proximidade de transporte público, escolas, comércio e outros serviços 
+                    essenciais antes de tomar sua decisão de investimento.
+                  </p>
                 </div>
               </TabsContent>
             </Tabs>
