@@ -1,13 +1,13 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Search, Bell, User, Settings } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 const Navbar = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const checkAuthStatus = async () => {
@@ -82,7 +82,7 @@ const Navbar = () => {
                 </Link>
               </Button>
             ) : (
-              <Button variant="outline" size="sm" className="ml-2">
+              <Button variant="outline" size="sm" className="ml-2" onClick={() => navigate('/login')}>
                 <User className="w-4 h-4 mr-2" />
                 Entrar
               </Button>

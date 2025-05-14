@@ -1,4 +1,3 @@
-
 import React from 'react';
 import {
   Card,
@@ -10,7 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Check } from 'lucide-react';
+import { Check, Loader2 } from 'lucide-react';
 import { type SubscriptionPlan as SubscriptionPlanType } from '@/hooks/useSubscription';
 
 export type SubscriptionPlan = SubscriptionPlanType;
@@ -95,7 +94,12 @@ const SubscriptionPlanCard: React.FC<SubscriptionPlanCardProps> = ({
           variant={isCurrentPlan ? "outline" : "default"}
           disabled={isLoading || (isCurrentPlan && plan.title !== 'Free')}
         >
-          {isLoading ? "Processando..." : isCurrentPlan ? "Plano Atual" : "Assinar"}
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Processando...
+            </>
+          ) : isCurrentPlan ? "Plano Atual" : "Assinar"}
         </Button>
       </CardFooter>
     </Card>

@@ -62,32 +62,33 @@ const featuredProperties = [
 ];
 
 const Index = () => {
-  const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState('');
   const [isYearly, setIsYearly] = useState(false);
-  const { plans, subscribeToPlan, subscriptionStatus, isLoading } = useSubscription();
-  const [activePlans, setActivePlans] = useState<SubscriptionPlan[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [checkoutLoadingPlanId, setCheckoutLoadingPlanId] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const { 
+    plans: activePlans, 
+    subscriptionStatus,
+    isLoading,
+    subscribeToPlan 
+  } = useSubscription();
 
-  // Filter to show only paid plans on homepage
-  useEffect(() => {
-    if (plans.length > 0) {
-      setActivePlans(plans.filter(plan => plan.price_monthly > 0));
+  const isCurrentPlan = (planId: string) => {
+    return subscriptionStatus?.plan?.id === planId;
+  };
+
+  const handleSubscribe = async (planId: string) => {
+    setCheckoutLoadingPlanId(planId);
+    try {
+      await subscribeToPlan(planId, isYearly ? 'year' : 'month');
+    } finally {
+      setCheckoutLoadingPlanId(null);
     }
-  }, [plans]);
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
-    }
-  };
-
-  const handleSubscribe = (planId: string) => {
-    subscribeToPlan(planId, isYearly ? 'year' : 'month');
-  };
-
-  const isCurrentPlan = (planId: string) => {
-    return subscriptionStatus?.active && subscriptionStatus.plan?.id === planId;
+    navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
   };
 
   return (
@@ -161,7 +162,7 @@ const Index = () => {
                     key={plan.id}
                     plan={plan}
                     isCurrentPlan={isCurrentPlan(plan.id)}
-                    isLoading={isLoading}
+                    isLoading={checkoutLoadingPlanId === plan.id}
                     billingInterval={isYearly ? 'year' : 'month'}
                     onSubscribe={handleSubscribe}
                   />

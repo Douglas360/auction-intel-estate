@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -18,6 +17,7 @@ import SubscriptionCheckout from "./pages/SubscriptionCheckout";
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminLayout from "./components/layouts/AdminLayout";
+import Login from "./pages/Login";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +39,7 @@ const App = () => (
           <Route path="/subscribe/:planId" element={<SubscriptionCheckout />} />
           <Route path="/payment-success" element={<PaymentSuccess />} />
           <Route path="/payment-canceled" element={<PaymentCanceled />} />
+          <Route path="/login" element={<Login />} />
           
           {/* Admin authentication */}
           <Route path="/admin/login" element={<AdminLogin />} />
