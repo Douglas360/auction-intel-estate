@@ -1,12 +1,42 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { Search, Bell, User, Settings } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 const Navbar = () => {
-  // For demo purposes, we'll assume the user is logged in
-  const isLoggedIn = true;
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const checkAuthStatus = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsLoggedIn(!!session);
+      
+      if (session) {
+        const { data: adminData } = await supabase
+          .from('admin_users')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .eq('is_active', true)
+          .single();
+        
+        setIsAdmin(!!adminData);
+      }
+    };
+    
+    checkAuthStatus();
+    
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      setIsLoggedIn(!!session);
+      checkAuthStatus();
+    });
+    
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
 
   return (
     <nav className="bg-white border-b border-gray-200 fixed w-full z-30 top-0 left-0 shadow-sm">
@@ -17,7 +47,7 @@ const Navbar = () => {
               <img 
                 src="/lovable-uploads/60ab9288-419a-4bab-b06a-a51d1669d4ac.png" 
                 alt="LeiloaImobi Logo" 
-                className="h-10" // Increased from h-8 to h-10
+                className="h-10" 
               />              
             </Link>
           </div>
@@ -25,6 +55,7 @@ const Navbar = () => {
             <Link to="/search" className="nav-link">Buscar</Link>
             <Link to="/properties" className="nav-link">Imóveis</Link>
             <Link to="/simulator" className="nav-link">Simulador</Link>
+            <Link to="/pricing" className="nav-link">Planos</Link>
             {isLoggedIn && (
               <Link to="/dashboard" className="nav-link">Minha Conta</Link>
             )}
@@ -38,9 +69,11 @@ const Navbar = () => {
                 <Bell className="w-5 h-5" />
               </Link>
             )}
-            <Link to="/admin" className="p-1 rounded-full text-gray-600 hover:bg-gray-100 focus:outline-none">
-              <Settings className="w-5 h-5" />
-            </Link>
+            {isAdmin && (
+              <Link to="/admin" className="p-1 rounded-full text-gray-600 hover:bg-gray-100 focus:outline-none">
+                <Settings className="w-5 h-5" />
+              </Link>
+            )}
             {isLoggedIn ? (
               <Button variant="outline" size="sm" className="ml-2" asChild>
                 <Link to="/dashboard">
