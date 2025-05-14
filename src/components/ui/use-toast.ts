@@ -1,4 +1,3 @@
-
 import * as React from "react"
 
 import type {
@@ -193,36 +192,37 @@ function toast(props: Toast) {
   }
 }
 
-function ToastProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = React.useState<State>(memoryState)
+// Create a non-JSX ToastProvider function
+function createToastProvider() {
+  return function ToastProvider({ children }: { children: React.ReactNode }) {
+    const [state, setState] = React.useState<State>(memoryState)
 
-  React.useEffect(() => {
-    listeners.push(setState)
-    return () => {
-      const index = listeners.indexOf(setState)
-      if (index > -1) {
-        listeners.splice(index, 1)
+    React.useEffect(() => {
+      listeners.push(setState)
+      return () => {
+        const index = listeners.indexOf(setState)
+        if (index > -1) {
+          listeners.splice(index, 1)
+        }
       }
+    }, [state])
+
+    const contextValue: ToastContextType = {
+      toasts: state.toasts,
+      toast,
+      dismiss: (toastId?: string) => dispatch({ type: actionTypes.DISMISS_TOAST, toastId }),
+      update: (id, props) => dispatch({ type: actionTypes.UPDATE_TOAST, toast: { ...props, id } }),
     }
-  }, [state])
 
-  const contextValue: ToastContextType = {
-    toasts: state.toasts,
-    toast,
-    dismiss: (toastId?: string) => dispatch({ type: actionTypes.DISMISS_TOAST, toastId }),
-    update: (id, props) => dispatch({ type: actionTypes.UPDATE_TOAST, toast: { ...props, id } }),
+    // This needs to be handled in a .tsx file, not here
+    return { contextValue, children }
   }
-
-  return (
-    <ToastContext.Provider value={contextValue}>
-      {children}
-    </ToastContext.Provider>
-  )
 }
 
+// Export the provider creator instead of the JSX component
 export { 
   useToast, 
   toast, 
-  ToastProvider,
-  ToastContext
+  ToastContext,
+  createToastProvider
 }
