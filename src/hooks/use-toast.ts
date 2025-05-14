@@ -1,3 +1,4 @@
+
 import * as React from "react"
 
 import type {
@@ -162,7 +163,7 @@ function toast({ ...props }: Toast) {
   })
 
   return {
-    id: id,
+    id,
     dismiss,
     update,
   }
@@ -189,3 +190,4 @@ function useToast() {
 }
 
 export { useToast, toast }
+

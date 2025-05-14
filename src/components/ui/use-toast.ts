@@ -1,3 +1,4 @@
+
 import * as React from "react"
 
 import type {
@@ -128,7 +129,7 @@ function addToRemoveQueue(toastId: string) {
 
 interface ToastContextType {
   toasts: ToasterToast[]
-  toast: (props: Omit<ToasterToast, "id">) => string
+  toast: (props: Omit<ToasterToast, "id">) => { id: string; dismiss: () => void; update: (props: ToasterToast) => void }
   dismiss: (toastId?: string) => void
   update: (id: string, props: ToasterToast) => void
 }
@@ -210,3 +211,4 @@ function useToastProvider(): ToastContextType {
 }
 
 export { useToast, toast, useToastProvider, ToastContext }
+
