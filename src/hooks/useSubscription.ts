@@ -40,6 +40,7 @@ export const useSubscription = () => {
   // Buscar os planos disponíveis
   const fetchPlans = async () => {
     try {
+      console.log("Buscando planos disponíveis");
       const { data, error } = await supabase
         .from('subscription_plans')
         .select('*')
@@ -48,6 +49,7 @@ export const useSubscription = () => {
       if (error) throw error;
       
       if (data) {
+        console.log("Planos encontrados:", data.length);
         setPlans(data as SubscriptionPlan[]);
       }
     } catch (error) {
@@ -80,6 +82,7 @@ export const useSubscription = () => {
         return;
       }
 
+      console.log("Verificando status da assinatura para o usuário:", user.id);
       const { data, error } = await supabase.functions.invoke('check-subscription', {
         body: { user_id: user.id },
       });
@@ -95,6 +98,7 @@ export const useSubscription = () => {
         return;
       }
 
+      console.log("Status da assinatura:", data);
       setSubscriptionStatus(data);
     } catch (error) {
       console.error('Erro ao verificar status da assinatura:', error);
@@ -123,8 +127,11 @@ export const useSubscription = () => {
           variant: "default",
         });
         // Redirecionar para login (em uma implementação real)
+        setIsCheckoutLoading(false);
         return;
       }
+
+      console.log("Iniciando processo de assinatura:", { planId, interval, userId: user.id });
 
       // Criar checkout
       const { data, error } = await supabase.functions.invoke('create-checkout', {
@@ -135,12 +142,17 @@ export const useSubscription = () => {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Erro na função create-checkout:", error);
+        throw error;
+      }
 
       // Redirecionar para a página de checkout do Stripe
       if (data?.checkout_url) {
+        console.log("Redirecionando para URL de checkout:", data.checkout_url);
         window.location.href = data.checkout_url;
       } else {
+        console.error("URL de checkout não encontrada na resposta:", data);
         throw new Error('URL de checkout não encontrada');
       }
     } catch (error) {

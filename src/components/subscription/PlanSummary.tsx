@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -30,6 +29,11 @@ const PlanSummary = ({
       style: 'currency',
       currency: 'BRL',
     }).format(value);
+  };
+
+  const handleSubscribeClick = () => {
+    console.log("Botão Assinar clicado");
+    handleSubscribe();
   };
 
   return (
@@ -114,7 +118,7 @@ const PlanSummary = ({
       
       <CardFooter>
         <Button 
-          onClick={handleSubscribe} 
+          onClick={handleSubscribeClick}
           className="w-full" 
           size="lg"
           disabled={authStep !== 'confirmed' || isCheckoutLoading}

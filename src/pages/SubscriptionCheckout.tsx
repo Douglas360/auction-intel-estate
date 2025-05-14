@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import { useSubscription } from '@/hooks/useSubscription';
 import { Loader2 } from 'lucide-react';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import AuthSection from '@/components/subscription/AuthSection';
 import PlanSummary from '@/components/subscription/PlanSummary';
@@ -22,8 +22,10 @@ const SubscriptionCheckout = () => {
     if (plans.length > 0 && planId) {
       const plan = plans.find(p => p.id === planId);
       if (plan) {
+        console.log("Plano encontrado:", plan);
         setSelectedPlan(plan);
       } else {
+        console.error("Plano não encontrado:", planId);
         toast({
           title: "Plano não encontrado",
           description: "O plano selecionado não foi encontrado.",
@@ -37,8 +39,10 @@ const SubscriptionCheckout = () => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
+        console.log("Usuário já autenticado:", session.user);
         setAuthStep('confirmed');
       } else {
+        console.log("Usuário não autenticado");
         setAuthStep('login');
       }
     };
@@ -48,7 +52,10 @@ const SubscriptionCheckout = () => {
 
   const handleSubscribe = () => {
     if (selectedPlan) {
+      console.log("Realizando assinatura do plano:", selectedPlan.id, "Período:", isYearly ? 'year' : 'month');
       subscribeToPlan(selectedPlan.id, isYearly ? 'year' : 'month');
+    } else {
+      console.error("Tentativa de assinatura sem plano selecionado");
     }
   };
 

@@ -36,6 +36,8 @@ const RegisterForm = ({ onSuccess, onBackClick, isLoading, setIsLoading }: Regis
     setIsLoading(true);
     
     try {
+      console.log("Tentando registrar com:", values);
+      
       const { data, error } = await supabase.auth.signUp({
         email: values.email,
         password: values.password,
@@ -48,6 +50,8 @@ const RegisterForm = ({ onSuccess, onBackClick, isLoading, setIsLoading }: Regis
       
       if (error) throw error;
       
+      console.log("Registro bem-sucedido:", data);
+      
       toast({
         title: "Conta criada com sucesso!",
         description: "Você pode prosseguir com a assinatura.",
@@ -55,6 +59,7 @@ const RegisterForm = ({ onSuccess, onBackClick, isLoading, setIsLoading }: Regis
       
       onSuccess();
     } catch (error: any) {
+      console.error("Erro ao criar conta:", error);
       toast({
         title: "Erro ao criar conta",
         description: error.message,

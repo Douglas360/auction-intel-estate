@@ -38,6 +38,7 @@ const LoginForm = ({ onSuccess, onRegisterClick, isLoading, setIsLoading }: Logi
       
       onSuccess();
     } catch (error: any) {
+      console.error("Erro ao fazer login:", error);
       toast({
         title: "Erro ao fazer login",
         description: error.message,
