@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -220,44 +219,6 @@ const PropertyDetail = () => {
                 <div>
                   <h3 className="text-xl font-semibold mb-3">Descrição</h3>
                   <p className="text-gray-600 whitespace-pre-line">{propertyData.description}</p>
-                </div>
-
-                <div>
-                  <h3 className="text-xl font-semibold mb-3">Características</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="bg-gray-50 p-3 rounded-md">
-                      <span className="text-gray-500 text-sm">Área</span>
-                      <p className="font-semibold">{propertyData.details.area}</p>
-                    </div>
-                    <div className="bg-gray-50 p-3 rounded-md">
-                      <span className="text-gray-500 text-sm">Dormitórios</span>
-                      <p className="font-semibold">{propertyData.details.bedrooms}</p>
-                    </div>
-                    <div className="bg-gray-50 p-3 rounded-md">
-                      <span className="text-gray-500 text-sm">Banheiros</span>
-                      <p className="font-semibold">{propertyData.details.bathrooms}</p>
-                    </div>
-                    <div className="bg-gray-50 p-3 rounded-md">
-                      <span className="text-gray-500 text-sm">Vagas</span>
-                      <p className="font-semibold">{propertyData.details.parkingSpots}</p>
-                    </div>
-                    <div className="bg-gray-50 p-3 rounded-md">
-                      <span className="text-gray-500 text-sm">Andar</span>
-                      <p className="font-semibold">{propertyData.details.floor}º</p>
-                    </div>
-                    <div className="bg-gray-50 p-3 rounded-md">
-                      <span className="text-gray-500 text-sm">Ano de construção</span>
-                      <p className="font-semibold">{propertyData.details.yearBuilt}</p>
-                    </div>
-                    <div className="bg-gray-50 p-3 rounded-md">
-                      <span className="text-gray-500 text-sm">Condomínio</span>
-                      <p className="font-semibold">{formatCurrency(propertyData.details.condominium)}</p>
-                    </div>
-                    <div className="bg-gray-50 p-3 rounded-md">
-                      <span className="text-gray-500 text-sm">IPTU</span>
-                      <p className="font-semibold">{formatCurrency(propertyData.details.iptu)}/ano</p>
-                    </div>
-                  </div>
                 </div>
 
                 <div>

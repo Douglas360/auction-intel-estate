@@ -18,6 +18,7 @@ import AdminLogin from "./pages/admin/AdminLogin";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminLayout from "./components/layouts/AdminLayout";
 import Login from "./pages/Login";
+import AllUsers from "./pages/admin/AllUsers";
 
 const queryClient = new QueryClient();
 
@@ -49,6 +50,7 @@ const App = () => (
             <Route index element={<Admin />} />
             <Route path="plans" element={<Admin />} />
             <Route path="admins" element={<AdminUsers />} />
+            <Route path="users" element={<AllUsers />} />
           </Route>
           
           {/* Catch-all route */}

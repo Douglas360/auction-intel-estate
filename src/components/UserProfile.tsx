@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { User, CreditCard, LogOut, Shield, Mail, Phone } from 'lucide-react';
 import { toast } from "sonner";
+import { useNavigate } from 'react-router-dom';
 
 interface UserProfileProps {
   user: {
@@ -26,6 +26,8 @@ const UserProfile = ({ user }: UserProfileProps) => {
     confirmPassword: '',
   });
 
+  const navigate = useNavigate();
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
@@ -38,9 +40,12 @@ const UserProfile = ({ user }: UserProfileProps) => {
     toast.success("Perfil atualizado com sucesso!");
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await import('@/integrations/supabase/client').then(async ({ supabase }) => {
+      await supabase.auth.signOut();
+    });
     toast.info("Logout realizado com sucesso!");
-    // In a real app, this would redirect to the login page
+    navigate('/login');
   };
 
   const handleDeleteAccount = () => {

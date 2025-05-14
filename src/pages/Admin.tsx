@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,9 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Search, Plus, Edit, Trash, User, Home, Gavel, AlertTriangle, MapPin, Calendar, CreditCard } from 'lucide-react';
+import { Search, Plus, Edit, Trash, User, Home, Gavel, AlertTriangle, MapPin, Calendar, CreditCard, Loader2 } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import SubscriptionPlansAdmin from './admin/SubscriptionPlans';
+import { createClient } from '@supabase/supabase-js';
 
 // Mock data for the admin dashboard
 const mockProperties = [
@@ -91,12 +92,26 @@ const mockUsers = [
   }
 ];
 
+const supabaseAny = createClient(
+  'https://pkvrxhczpvmopgzgcqmk.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBrdnJ4aGN6cHZtb3BnemdjcW1rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY4MDE1NzEsImV4cCI6MjA2MjM3NzU3MX0.8Cp2c2UXtRv7meUl8KNx4ihgdEhUTUd_dLeYDnUQn9o'
+);
+
 const Admin = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [searchQuery, setSearchQuery] = useState("");
   const [editingProperty, setEditingProperty] = useState<any>(null);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const [properties, setProperties] = useState<any[]>([]);
+  const [isLoadingProperties, setIsLoadingProperties] = useState(false);
+  const [auctions, setAuctions] = useState([
+    { auction_number: 1, auction_date: '', min_bid: '' }
+  ]);
+  const [propertyAuctions, setPropertyAuctions] = useState<Record<string, any>>({});
   
   const formatCurrency = (value: number) => {
+    if (!value || isNaN(value)) return 'R$ 0,00';
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL'
@@ -104,30 +119,141 @@ const Admin = () => {
   };
 
   const formatDate = (dateStr: string) => {
+    if (!dateStr) return '-';
     const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return '-';
     return date.toLocaleDateString('pt-BR');
   };
   
-  const handleEditProperty = (property: any) => {
-    setEditingProperty({...property});
+  const handleEditProperty = async (property: any) => {
+    setEditingProperty({
+      ...property,
+      auctionPrice: property.auction_price ?? '',
+      marketPrice: property.market_price ?? '',
+      auctionDate: property.auction_date ?? '',
+      auctionType: property.auction_type ?? '',
+      min_bid: property.min_bid ?? '',
+      // Adicione outros campos conforme necessário
+    });
+    // Buscar leilões do imóvel
+    const { data: auctionsData } = await supabaseAny
+      .from('auctions')
+      .select('*')
+      .eq('property_id', property.id)
+      .order('auction_number');
+    setAuctions(auctionsData && auctionsData.length > 0 ? auctionsData : [
+      { auction_number: 1, auction_date: '', min_bid: '' }
+    ]);
   };
   
-  const handleDeleteProperty = (id: string) => {
-    // In a real app, this would call an API to delete the property
-    toast.success(`Imóvel ${id} excluído com sucesso.`);
+  const handleDeleteProperty = async (id: string) => {
+    const confirmDelete = window.confirm('Tem certeza que deseja excluir este imóvel? Esta ação não pode ser desfeita.');
+    if (!confirmDelete) return;
+    const { error } = await supabaseAny.from('properties').delete().eq('id', id);
+    if (error) {
+      toast.error('Erro ao excluir imóvel: ' + error.message);
+      return;
+    }
+    toast.success('Imóvel excluído com sucesso.');
+    await fetchProperties();
   };
   
-  const handleSaveProperty = (e: React.FormEvent) => {
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setImageFiles(Array.from(e.target.files));
+    }
+  };
+  
+  const handleSaveProperty = async (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, this would call an API to save the property
-    toast.success("Imóvel salvo com sucesso!");
+    setIsSaving(true);
+    let imageUrls: string[] = [];
+    if (imageFiles.length > 0) {
+      for (const file of imageFiles) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
+        const { data, error } = await supabaseAny.storage.from('properties-images').upload(fileName, file);
+        if (error) {
+          toast.error('Erro ao fazer upload da imagem: ' + error.message);
+          setIsSaving(false);
+          return;
+        }
+        const url = supabaseAny.storage.from('properties-images').getPublicUrl(fileName).data.publicUrl;
+        imageUrls.push(url);
+      }
+    }
+    const propertyData = {
+      title: editingProperty.title,
+      description: editingProperty.description,
+      type: editingProperty.type,
+      address: editingProperty.address,
+      city: editingProperty.city,
+      state: editingProperty.state,
+      auction_price: editingProperty.auctionPrice,
+      market_price: editingProperty.marketPrice,
+      discount: editingProperty.discount,
+      auction_date: editingProperty.auctionDate ? editingProperty.auctionDate : null,
+      auction_type: editingProperty.auctionType,
+      status: editingProperty.status,
+      images: imageUrls,
+      auctioneer: editingProperty.auctioneer,
+      auctioneer_site: editingProperty.auctioneer_site,
+      process_number: editingProperty.process_number,
+      court: editingProperty.court,
+      min_bid: editingProperty.min_bid,
+      region_description: editingProperty.region_description,
+      matricula_pdf_url: editingProperty.matricula_pdf_url,
+    };
+    let propertyId = editingProperty.id;
+    if (propertyId) {
+      // UPDATE
+      const { error } = await supabaseAny
+        .from('properties')
+        .update(propertyData)
+        .eq('id', propertyId);
+      if (error) {
+        toast.error('Erro ao atualizar imóvel: ' + error.message);
+        setIsSaving(false);
+        return;
+      }
+      // Remove auctions antigos
+      await supabaseAny.from('auctions').delete().eq('property_id', propertyId);
+      toast.success("Imóvel atualizado com sucesso!");
+    } else {
+      // INSERT
+      const { data, error } = await supabaseAny
+        .from('properties')
+        .insert([propertyData])
+        .select('id');
+      if (error) {
+        toast.error('Erro ao salvar imóvel: ' + error.message);
+        setIsSaving(false);
+        return;
+      }
+      propertyId = data[0].id;
+      toast.success("Imóvel salvo com sucesso!");
+    }
+    // Salvar auctions
+    for (const auction of auctions) {
+      if (!auction.auction_date || !auction.min_bid) continue; // Pula leilões incompletos
+      await supabaseAny.from('auctions').insert([{
+        property_id: propertyId,
+        auction_number: auction.auction_number,
+        auction_date: auction.auction_date,
+        min_bid: auction.min_bid
+      }]);
+    }
+    await fetchProperties();
     setEditingProperty(null);
+    setImageFiles([]);
+    setIsSaving(false);
   };
   
   const handleAddNewProperty = () => {
     setEditingProperty({
       id: '',
       title: '',
+      description: '',
       type: '',
       address: '',
       city: '',
@@ -137,11 +263,55 @@ const Admin = () => {
       discount: 0,
       auctionDate: '',
       auctionType: '',
-      riskLevel: 'low',
-      imageUrl: '/placeholder.svg',
-      status: 'pending'
+      imageUrl: '',
+      status: 'pending',
+      auctioneer: '',
+      auctioneer_site: '',
+      process_number: '',
+      court: '',
+      min_bid: 0,
+      region_description: '',
+      matricula_pdf_url: '',
     });
   };
+  
+  useEffect(() => {
+    if (activeTab === 'properties') {
+      fetchProperties();
+    }
+    // eslint-disable-next-line
+  }, [activeTab]);
+
+  const fetchProperties = async () => {
+    setIsLoadingProperties(true);
+    const { data, error } = await supabaseAny.from('properties').select('*').order('created_at', { ascending: false });
+    if (error) {
+      toast.error('Erro ao buscar imóveis: ' + error.message);
+      setIsLoadingProperties(false);
+      return;
+    }
+    setProperties(data || []);
+    setIsLoadingProperties(false);
+  };
+
+  useEffect(() => {
+    const fetchAllAuctions = async () => {
+      if (properties.length === 0) return;
+      const ids = properties.map(p => p.id);
+      const { data } = await supabaseAny
+        .from('auctions')
+        .select('property_id, auction_number, auction_date')
+        .in('property_id', ids);
+      // Agrupa por property_id
+      const grouped: Record<string, any> = {};
+      (data || []).forEach(a => {
+        if (!grouped[a.property_id]) grouped[a.property_id] = [];
+        grouped[a.property_id].push(a);
+      });
+      setPropertyAuctions(grouped);
+    };
+    fetchAllAuctions();
+  }, [properties]);
   
   return (
     <div className="min-h-screen bg-gray-50">
@@ -291,6 +461,15 @@ const Admin = () => {
                           required
                         />
                       </div>
+                      <div className="space-y-2 md:col-span-2">
+                        <Label htmlFor="description">Descrição</Label>
+                        <Textarea
+                          id="description"
+                          value={editingProperty.description}
+                          onChange={(e) => setEditingProperty({ ...editingProperty, description: e.target.value })}
+                          required
+                        />
+                      </div>
                       <div className="space-y-2">
                         <Label htmlFor="type">Tipo de Imóvel</Label>
                         <Select 
@@ -385,54 +564,111 @@ const Admin = () => {
                           required
                         />
                       </div>
+                      <div className="space-y-2 md:col-span-2">
+                        <Label>Leilões</Label>
+                        {auctions.map((auction, idx) => (
+                          <div key={idx} className="flex gap-2 items-end">
+                            <div>
+                              <Label>Data do {auction.auction_number}º Leilão</Label>
+                              <Input
+                                type="date"
+                                value={auction.auction_date}
+                                onChange={e => {
+                                  const newAuctions = [...auctions];
+                                  newAuctions[idx].auction_date = e.target.value;
+                                  setAuctions(newAuctions);
+                                }}
+                                required
+                              />
+                            </div>
+                            <div>
+                              <Label>Lance mínimo</Label>
+                              <Input
+                                type="number"
+                                value={auction.min_bid}
+                                onChange={e => {
+                                  const newAuctions = [...auctions];
+                                  newAuctions[idx].min_bid = e.target.value;
+                                  setAuctions(newAuctions);
+                                }}
+                                required
+                              />
+                            </div>
+                            {auctions.length > 1 && (
+                              <Button type="button" variant="destructive" onClick={() => setAuctions(auctions.filter((_, i) => i !== idx))}>
+                                Remover
+                              </Button>
+                            )}
+                          </div>
+                        ))}
+                        <Button
+                          type="button"
+                          onClick={() =>
+                            setAuctions([
+                              ...auctions,
+                              { auction_number: auctions.length + 1, auction_date: '', min_bid: '' }
+                            ])
+                          }
+                        >
+                          Adicionar Leilão
+                        </Button>
+                      </div>
                       <div className="space-y-2">
-                        <Label htmlFor="auctionDate">Data do Leilão</Label>
-                        <Input 
-                          id="auctionDate" 
-                          type="date"
-                          value={editingProperty.auctionDate} 
-                          onChange={(e) => setEditingProperty({...editingProperty, auctionDate: e.target.value})}
-                          required
+                        <Label htmlFor="images">Imagens do Imóvel</Label>
+                        <Input
+                          id="images"
+                          type="file"
+                          multiple
+                          accept="image/*"
+                          onChange={handleImageChange}
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="auctionType">Tipo do Leilão</Label>
-                        <Select 
-                          value={editingProperty.auctionType} 
-                          onValueChange={(value) => setEditingProperty({...editingProperty, auctionType: value})}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione o tipo" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Judicial">Judicial</SelectItem>
-                            <SelectItem value="Extrajudicial">Extrajudicial</SelectItem>
-                            <SelectItem value="Banco">Banco</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <Label htmlFor="auctioneer">Leiloeiro</Label>
+                        <Input
+                          id="auctioneer"
+                          value={editingProperty.auctioneer}
+                          onChange={(e) => setEditingProperty({ ...editingProperty, auctioneer: e.target.value })}
+                        />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="riskLevel">Nível de Risco</Label>
-                        <Select 
-                          value={editingProperty.riskLevel} 
-                          onValueChange={(value) => setEditingProperty({...editingProperty, riskLevel: value})}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione o nível de risco" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="low">Baixo</SelectItem>
-                            <SelectItem value="medium">Médio</SelectItem>
-                            <SelectItem value="high">Alto</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <Label htmlFor="auctioneer_site">Site do Leiloeiro</Label>
+                        <Input
+                          id="auctioneer_site"
+                          value={editingProperty.auctioneer_site}
+                          onChange={(e) => setEditingProperty({ ...editingProperty, auctioneer_site: e.target.value })}
+                        />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="imageUrl">URL da Imagem</Label>
-                        <Input 
-                          id="imageUrl" 
-                          value={editingProperty.imageUrl} 
-                          onChange={(e) => setEditingProperty({...editingProperty, imageUrl: e.target.value})}
+                        <Label htmlFor="process_number">Processo</Label>
+                        <Input
+                          id="process_number"
+                          value={editingProperty.process_number}
+                          onChange={(e) => setEditingProperty({ ...editingProperty, process_number: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="court">Vara/Tribunal</Label>
+                        <Input
+                          id="court"
+                          value={editingProperty.court}
+                          onChange={(e) => setEditingProperty({ ...editingProperty, court: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="region_description">Descrição da Região</Label>
+                        <Textarea
+                          id="region_description"
+                          value={editingProperty.region_description}
+                          onChange={(e) => setEditingProperty({ ...editingProperty, region_description: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="matricula_pdf_url">PDF da Matrícula (URL)</Label>
+                        <Input
+                          id="matricula_pdf_url"
+                          value={editingProperty.matricula_pdf_url}
+                          onChange={(e) => setEditingProperty({ ...editingProperty, matricula_pdf_url: e.target.value })}
                         />
                       </div>
                     </div>
@@ -445,8 +681,15 @@ const Admin = () => {
                       >
                         Cancelar
                       </Button>
-                      <Button type="submit" className="bg-auction-primary hover:bg-auction-secondary">
-                        Salvar
+                      <Button type="submit" className="bg-auction-primary hover:bg-auction-secondary" disabled={isSaving}>
+                        {isSaving ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Salvando...
+                          </>
+                        ) : (
+                          'Salvar'
+                        )}
                       </Button>
                     </div>
                   </form>
@@ -472,80 +715,90 @@ const Admin = () => {
                     </div>
                   </CardContent>
                 </Card>
-                
-                <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-4 py-3 text-left">Título</th>
-                          <th className="px-4 py-3 text-left">Tipo</th>
-                          <th className="px-4 py-3 text-left">Localização</th>
-                          <th className="px-4 py-3 text-right">Valor</th>
-                          <th className="px-4 py-3 text-center">Desconto</th>
-                          <th className="px-4 py-3 text-left">Data do Leilão</th>
-                          <th className="px-4 py-3 text-center">Status</th>
-                          <th className="px-4 py-3 text-center">Ações</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-200">
-                        {mockProperties.map((property) => (
-                          <tr key={property.id} className="hover:bg-gray-50">
-                            <td className="px-4 py-4">
-                              <div className="font-medium">{property.title}</div>
-                            </td>
-                            <td className="px-4 py-4">
-                              <div className="">{property.type}</div>
-                            </td>
-                            <td className="px-4 py-4">
-                              <div className="">{property.city}, {property.state}</div>
-                            </td>
-                            <td className="px-4 py-4 text-right">
-                              <div className="font-medium">{formatCurrency(property.auctionPrice)}</div>
-                            </td>
-                            <td className="px-4 py-4 text-center">
-                              <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200">
-                                {property.discount}%
-                              </Badge>
-                            </td>
-                            <td className="px-4 py-4">
-                              <div className="">{formatDate(property.auctionDate)}</div>
-                            </td>
-                            <td className="px-4 py-4 text-center">
-                              <Badge 
-                                variant="outline"
-                                className={property.status === 'active' 
-                                  ? 'bg-green-50 text-green-600 border-green-200' 
-                                  : 'bg-yellow-50 text-yellow-600 border-yellow-200'
-                                }
-                              >
-                                {property.status === 'active' ? 'Ativo' : 'Pendente'}
-                              </Badge>
-                            </td>
-                            <td className="px-4 py-4">
-                              <div className="flex justify-center space-x-2">
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm"
-                                  onClick={() => handleEditProperty(property)}
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm"
-                                  onClick={() => handleDeleteProperty(property.id)}
-                                >
-                                  <Trash className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                {isLoadingProperties ? (
+                  <div className="flex justify-center py-10">
+                    <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
                   </div>
-                </div>
+                ) : (
+                  <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-4 py-3 text-left">Título</th>
+                            <th className="px-4 py-3 text-left">Tipo</th>
+                            <th className="px-4 py-3 text-left">Localização</th>
+                            <th className="px-4 py-3 text-right">Valor</th>
+                            <th className="px-4 py-3 text-center">Desconto</th>
+                            <th className="px-4 py-3 text-left">Data do Leilão</th>
+                            <th className="px-4 py-3 text-center">Status</th>
+                            <th className="px-4 py-3 text-center">Ações</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200">
+                          {properties.map((property) => (
+                            <tr key={property.id} className="hover:bg-gray-50">
+                              <td className="px-4 py-4">
+                                <div className="font-medium">{property.title}</div>
+                              </td>
+                              <td className="px-4 py-4">
+                                <div className="">{property.type}</div>
+                              </td>
+                              <td className="px-4 py-4">
+                                <div className="">{property.city}, {property.state}</div>
+                              </td>
+                              <td className="px-4 py-4 text-right">
+                                <div className="font-medium">{formatCurrency(property.auction_price || 0)}</div>
+                              </td>
+                              <td className="px-4 py-4 text-center">
+                                <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200">
+                                  {property.discount}%
+                                </Badge>
+                              </td>
+                              <td className="px-4 py-4">
+                                <div className="">
+                                  {propertyAuctions[property.id] && propertyAuctions[property.id][0]?.auction_date
+                                    ? formatDate(propertyAuctions[property.id][0].auction_date)
+                                    : '-'
+                                  }
+                                </div>
+                              </td>
+                              <td className="px-4 py-4 text-center">
+                                <Badge 
+                                  variant="outline"
+                                  className={property.status === 'active' 
+                                    ? 'bg-green-50 text-green-600 border-green-200' 
+                                    : 'bg-yellow-50 text-yellow-600 border-yellow-200'
+                                  }
+                                >
+                                  {property.status === 'active' ? 'Ativo' : 'Pendente'}
+                                </Badge>
+                              </td>
+                              <td className="px-4 py-4">
+                                <div className="flex justify-center space-x-2">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    onClick={() => handleEditProperty(property)}
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    onClick={() => handleDeleteProperty(property.id)}
+                                  >
+                                    <Trash className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
               </>
             )}
           </TabsContent>
