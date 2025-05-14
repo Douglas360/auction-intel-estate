@@ -1,9 +1,11 @@
 
-// Importamos o hook do componente UI
-import { useToast as useToastUi } from "@/components/ui/use-toast";
+// Import from the UI component
+import { useToast as useToastUi, toast as toastUi, ToastProvider } from "@/components/ui/use-toast";
 
-// Exportamos tudo do arquivo original
+// Export everything from the original file
 export * from "@/components/ui/use-toast";
 
-// Re-exportamos o hook como um alias para evitar confusão
+// Re-export with aliases to avoid confusion
 export const useToast = useToastUi;
+export const toast = toastUi;
+export { ToastProvider };

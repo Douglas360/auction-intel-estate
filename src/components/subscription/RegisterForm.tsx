@@ -17,12 +17,12 @@ const formSchema = z.object({
 
 interface RegisterFormProps {
   onSuccess: () => void;
-  onBackClick: () => void;
+  onLoginClick: () => void; // Updated from onBackClick to match usage in AuthSection
   isLoading: boolean;
   setIsLoading: (loading: boolean) => void;
 }
 
-const RegisterForm = ({ onSuccess, onBackClick, isLoading, setIsLoading }: RegisterFormProps) => {
+const RegisterForm = ({ onSuccess, onLoginClick, isLoading, setIsLoading }: RegisterFormProps) => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -117,7 +117,7 @@ const RegisterForm = ({ onSuccess, onBackClick, isLoading, setIsLoading }: Regis
             <Button 
               type="button" 
               variant="ghost" 
-              onClick={onBackClick}
+              onClick={onLoginClick}
             >
               Voltar
             </Button>

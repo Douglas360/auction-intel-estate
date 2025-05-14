@@ -129,7 +129,11 @@ function addToRemoveQueue(toastId: string) {
 
 interface ToastContextType {
   toasts: ToasterToast[]
-  toast: (props: Omit<ToasterToast, "id">) => { id: string; dismiss: () => void; update: (props: ToasterToast) => void }
+  toast: (props: Omit<ToasterToast, "id">) => { 
+    id: string; 
+    dismiss: () => void; 
+    update: (props: ToasterToast) => void 
+  }
   dismiss: (toastId?: string) => void
   update: (id: string, props: ToasterToast) => void
 }
@@ -189,7 +193,7 @@ function toast(props: Toast) {
   }
 }
 
-function useToastProvider(): ToastContextType {
+function ToastProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = React.useState<State>(memoryState)
 
   React.useEffect(() => {
@@ -202,13 +206,23 @@ function useToastProvider(): ToastContextType {
     }
   }, [state])
 
-  return {
+  const contextValue: ToastContextType = {
     toasts: state.toasts,
     toast,
     dismiss: (toastId?: string) => dispatch({ type: actionTypes.DISMISS_TOAST, toastId }),
     update: (id, props) => dispatch({ type: actionTypes.UPDATE_TOAST, toast: { ...props, id } }),
   }
+
+  return (
+    <ToastContext.Provider value={contextValue}>
+      {children}
+    </ToastContext.Provider>
+  )
 }
 
-export { useToast, toast, useToastProvider, ToastContext }
-
+export { 
+  useToast, 
+  toast, 
+  ToastProvider,
+  ToastContext
+}
