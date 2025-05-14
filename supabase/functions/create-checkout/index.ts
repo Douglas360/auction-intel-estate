@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
 
     // Configurando o cliente Supabase
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY') || '';
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
     const supabase = createClient(supabaseUrl, supabaseKey);
     console.log("Cliente Supabase configurado");
 
@@ -124,24 +124,61 @@ Deno.serve(async (req) => {
       }];
     }
 
-    // Buscando informações do usuário
+    // Em vez de usar auth.admin.getUserById, busque o usuário do banco de dados
     console.log("Buscando informações do usuário:", user_id);
-    const { data: userInfo, error: userError } = await supabase.auth.admin.getUserById(user_id);
-
-    // Verificando se houve erro ao buscar o usuário
-    if (userError || !userInfo.user) {
-      console.error('Erro ao buscar informações do usuário:', userError);
-      return new Response(
-        JSON.stringify({ 
-          error: 'Erro ao buscar informações do usuário'
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500 
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('email')
+      .eq('id', user_id)
+      .single();
+      
+    let userEmail;
+    
+    if (userError) {
+      // Tente buscar diretamente da tabela auth.users
+      const { data: authUser, error: authUserError } = await supabase
+        .from('auth_users')
+        .select('email')
+        .eq('id', user_id)
+        .single();
+        
+      if (authUserError) {
+        console.error('Erro ao buscar informações do usuário:', authUserError);
+        // Vamos usar o token Authorization para obter o usuário atual
+        const authHeader = req.headers.get('Authorization');
+        if (!authHeader) {
+          return new Response(
+            JSON.stringify({ error: 'Autorização requerida' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+          );
         }
+        
+        const supabaseClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY') || '');
+        const { data: userData } = await supabaseClient.auth.getUser(authHeader.replace('Bearer ', ''));
+        
+        if (!userData?.user?.email) {
+          return new Response(
+            JSON.stringify({ error: 'Não foi possível obter informações do usuário' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+          );
+        }
+        
+        userEmail = userData.user.email;
+      } else {
+        userEmail = authUser.email;
+      }
+    } else {
+      userEmail = user.email;
+    }
+    
+    if (!userEmail) {
+      return new Response(
+        JSON.stringify({ error: 'Email do usuário não encontrado' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
-    console.log("Usuário encontrado:", userInfo.user.email);
+    
+    console.log("Email do usuário encontrado:", userEmail);
 
     // Buscando cliente no Stripe ou criando um novo
     console.log("Verificando se o usuário já possui um cliente no Stripe");
@@ -157,7 +194,7 @@ Deno.serve(async (req) => {
     if (!customerId) {
       console.log("Cliente Stripe não encontrado, criando novo...");
       const customer = await stripe.customers.create({
-        email: userInfo.user.email,
+        email: userEmail,
         metadata: {
           user_id: user_id
         }
@@ -211,7 +248,8 @@ Deno.serve(async (req) => {
     console.error('Erro inesperado:', err);
     return new Response(
       JSON.stringify({ 
-        error: 'Ocorreu um erro ao processar sua solicitação'
+        error: 'Ocorreu um erro ao processar sua solicitação',
+        details: err instanceof Error ? err.message : String(err)
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
