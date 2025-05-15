@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { MapPin, Calendar, Trash, Calculator, FileText } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
+import { ProfitSimulatorDrawer } from './simulator/ProfitSimulatorDrawer';
+import { toast } from '@/components/ui/use-toast';
 
 interface Property {
   id: string;
@@ -33,6 +35,9 @@ const UserFavorites = ({ favorites, onRemoveFavorite }: UserFavoritesProps) => {
       currency: 'BRL'
     }).format(value);
   };
+
+  const [simulatorOpen, setSimulatorOpen] = useState(false);
+  const [simulatorProperty, setSimulatorProperty] = useState<Property | null>(null);
 
   if (favorites.length === 0) {
     return (
@@ -100,11 +105,11 @@ const UserFavorites = ({ favorites, onRemoveFavorite }: UserFavoritesProps) => {
                   <Button size="sm" asChild>
                     <Link to={`/properties/${property.id}`}>Ver Detalhes</Link>
                   </Button>
-                  <Button size="sm" variant="outline" className="flex items-center">
+                  <Button size="sm" variant="outline" className="flex items-center" onClick={() => { setSimulatorProperty(property); setSimulatorOpen(true); }}>
                     <Calculator className="h-4 w-4 mr-1" />
                     Simular
                   </Button>
-                  <Button size="sm" variant="outline" className="flex items-center">
+                  <Button size="sm" variant="outline" className="flex items-center" onClick={() => toast({ title: 'Em desenvolvimento', description: 'Esta funcionalidade estará disponível em breve.' })}>
                     <FileText className="h-4 w-4 mr-1" />
                     Análise
                   </Button>
@@ -117,6 +122,14 @@ const UserFavorites = ({ favorites, onRemoveFavorite }: UserFavoritesProps) => {
           </Card>
         ))}
       </div>
+
+      {simulatorProperty && (
+        <ProfitSimulatorDrawer
+          open={simulatorOpen}
+          onClose={() => setSimulatorOpen(false)}
+          property={simulatorProperty}
+        />
+      )}
     </div>
   );
 };

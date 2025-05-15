@@ -45,7 +45,7 @@ const Navbar = () => {
           <div className="flex items-center justify-start">
             <Link to="/" className="flex ml-2 md:mr-24">
               <img 
-                src="/lovable-uploads/60ab9288-419a-4bab-b06a-a51d1669d4ac.png" 
+                src="/assets/logo.png" 
                 alt="HAU Logo" 
                 className="h-10" 
               />              
