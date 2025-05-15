@@ -3,7 +3,6 @@ import Navbar from '@/components/Navbar';
 import PropertyCard from '@/components/PropertyCard';
 import { useProperties } from '@/hooks/useProperties';
 import { Button } from '@/components/ui/button';
-import { ArrowRight } from 'lucide-react';
 import SearchFilters from '@/components/SearchFilters';
 
 const Properties = () => {
