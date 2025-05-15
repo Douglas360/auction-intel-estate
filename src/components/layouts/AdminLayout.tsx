@@ -62,7 +62,7 @@ const AdminLayout = () => {
       <header className="bg-gray-900 text-white shadow-md">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <h1 className="text-xl font-bold">LeiloaImobi Admin</h1>
+            <h1 className="text-xl font-bold">HAU Admin</h1>
           </div>
           <div className="flex items-center gap-4">
             <div className="hidden md:flex items-center text-sm">
@@ -106,7 +106,7 @@ const AdminLayout = () => {
 
       <footer className="bg-gray-100 border-t">
         <div className="container mx-auto px-4 py-4 text-center text-sm text-gray-600">
-          &copy; {new Date().getFullYear()} LeiloaImobi - Área Administrativa
+          &copy; {new Date().getFullYear()} HAU - Área Administrativa
         </div>
       </footer>
     </div>

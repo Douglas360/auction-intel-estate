@@ -134,6 +134,128 @@ export type Database = {
           },
         ]
       }
+      properties: {
+        Row: {
+          id: string
+          title: string
+          description: string | null
+          type: string
+          address: string
+          city: string
+          state: string
+          auction_price: number
+          market_price: number
+          discount: number
+          auction_date: string
+          auction_type: string
+          risk_level: 'low' | 'medium' | 'high'
+          image_url: string | null
+          status: string
+          auctioneer: string | null
+          auctioneer_site: string | null
+          process_number: string | null
+          court: string | null
+          min_bid: number | null
+          region_description: string | null
+          matricula_pdf_url: string | null
+          details: Json | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          description?: string | null
+          type: string
+          address: string
+          city: string
+          state: string
+          auction_price: number
+          market_price: number
+          discount: number
+          auction_date: string
+          auction_type: string
+          risk_level?: 'low' | 'medium' | 'high'
+          image_url?: string | null
+          status?: string
+          auctioneer?: string | null
+          auctioneer_site?: string | null
+          process_number?: string | null
+          court?: string | null
+          min_bid?: number | null
+          region_description?: string | null
+          matricula_pdf_url?: string | null
+          details?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          description?: string | null
+          type?: string
+          address?: string
+          city?: string
+          state?: string
+          auction_price?: number
+          market_price?: number
+          discount?: number
+          auction_date?: string
+          auction_type?: string
+          risk_level?: 'low' | 'medium' | 'high'
+          image_url?: string | null
+          status?: string
+          auctioneer?: string | null
+          auctioneer_site?: string | null
+          process_number?: string | null
+          court?: string | null
+          min_bid?: number | null
+          region_description?: string | null
+          matricula_pdf_url?: string | null
+          details?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      auctions: {
+        Row: {
+          id: string
+          property_id: string
+          auction_number: number
+          auction_date: string
+          min_bid: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          property_id: string
+          auction_number: number
+          auction_date: string
+          min_bid: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          property_id?: string
+          auction_number?: number
+          auction_date?: string
+          min_bid?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auctions_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never

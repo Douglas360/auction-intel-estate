@@ -4,7 +4,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
-import PropertySearch from "./pages/PropertySearch";
 import PropertyDetail from "./pages/PropertyDetail";
 import SimulatorPage from "./pages/SimulatorPage";
 import Admin from "./pages/Admin";
@@ -19,6 +18,7 @@ import AdminUsers from "./pages/admin/AdminUsers";
 import AdminLayout from "./components/layouts/AdminLayout";
 import Login from "./pages/Login";
 import AllUsers from "./pages/admin/AllUsers";
+import Properties from "./pages/Properties";
 
 const queryClient = new QueryClient();
 
@@ -31,8 +31,8 @@ const App = () => (
         <Routes>
           {/* Public routes */}
           <Route path="/" element={<Index />} />
-          <Route path="/search" element={<PropertySearch />} />
-          <Route path="/properties" element={<PropertySearch />} />
+          {/* <Route path="/search" element={<PropertySearch />} /> */}
+          <Route path="/properties" element={<Properties />} />
           <Route path="/properties/:id" element={<PropertyDetail />} />
           <Route path="/simulator" element={<SimulatorPage />} />
           <Route path="/dashboard" element={<UserDashboard />} />

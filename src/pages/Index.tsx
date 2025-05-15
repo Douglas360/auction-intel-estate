@@ -4,62 +4,12 @@ import Navbar from '@/components/Navbar';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Search, ArrowRight } from "lucide-react";
 import { useSubscription, SubscriptionPlan } from '@/hooks/useSubscription';
 import SubscriptionPlanCard from "@/components/subscription/SubscriptionPlanCard";
 import PricingToggle from "@/components/subscription/PricingToggle";
 import PropertyCard from "@/components/PropertyCard";
-import { toast } from "@/components/ui/use-toast";
-
-// Mock data for featured properties
-const featuredProperties = [
-  {
-    id: '1',
-    title: 'Apartamento 3 dormitórios na Vila Mariana',
-    type: 'Apartamento',
-    address: 'Rua Domingos de Morais, 2455, Apto 82',
-    city: 'São Paulo',
-    state: 'SP',
-    auctionPrice: 455000,
-    marketPrice: 650000,
-    discount: 30,
-    auctionDate: '2025-06-15',
-    auctionType: 'Judicial',
-    riskLevel: 'low' as 'low',
-    imageUrl: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267'
-  },
-  {
-    id: '2',
-    title: 'Casa em condomínio fechado',
-    type: 'Casa',
-    address: 'Alameda dos Nhambiquaras, 1050, Casa 14',
-    city: 'Cotia',
-    state: 'SP',
-    auctionPrice: 510000,
-    marketPrice: 850000,
-    discount: 40,
-    auctionDate: '2025-07-10',
-    auctionType: 'Extrajudicial',
-    riskLevel: 'medium' as 'medium',
-    imageUrl: 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914'
-  },
-  {
-    id: '3',
-    title: 'Sala comercial no Centro',
-    type: 'Comercial',
-    address: 'Avenida Paulista, 1578, Sala 302',
-    city: 'Rio de Janeiro',
-    state: 'RJ',
-    auctionPrice: 247000,
-    marketPrice: 380000,
-    discount: 35,
-    auctionDate: '2025-06-28',
-    auctionType: 'Banco',
-    riskLevel: 'high' as 'high',
-    imageUrl: 'https://images.unsplash.com/photo-1497366811353-6870744d04b2'
-  }
-];
+import { useProperties } from '@/hooks/useProperties';
 
 const Index = () => {
   const [isYearly, setIsYearly] = useState(false);
@@ -72,6 +22,7 @@ const Index = () => {
     isLoading,
     subscribeToPlan 
   } = useSubscription();
+  const { featuredProperties, isLoading: isLoadingProperties } = useProperties();
 
   const isCurrentPlan = (planId: string) => {
     return subscriptionStatus?.plan?.id === planId;
@@ -88,7 +39,7 @@ const Index = () => {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+    navigate(`/properties?q=${encodeURIComponent(searchQuery)}`);
   };
 
   return (
@@ -237,12 +188,18 @@ const Index = () => {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {featuredProperties.map(property => (
-                <PropertyCard 
-                  key={property.id}
-                  {...property}
-                />
-              ))}
+              {isLoadingProperties ? (
+                <div className="col-span-3 text-center py-10">Carregando imóveis...</div>
+              ) : featuredProperties.length > 0 ? (
+                featuredProperties.map(property => (
+                  <PropertyCard 
+                    key={property.id}
+                    {...property}
+                  />
+                ))
+              ) : (
+                <div className="col-span-3 text-center py-10">Nenhum imóvel encontrado.</div>
+              )}
             </div>
             
             <div className="text-center mt-8">

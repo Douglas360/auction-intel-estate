@@ -1,0 +1,107 @@
+{
+    "properties": [
+      {
+        "title": "Apartamento 3 dormitórios no Morumbi",
+        "description": "Excelente apartamento com 3 dormitórios, sendo 1 suíte, com 92m² de área útil, 2 vagas de garagem, localizado no bairro Morumbi. O condomínio possui área de lazer completa com piscina, salão de festas, academia e playground.",
+        "type": "Apartamento",
+        "address": "Rua Engenheiro João de Ulhôa Cintra, 214, Apto 132",
+        "city": "São Paulo",
+        "state": "SP",
+        "auction_price": 450000,
+        "market_price": 650000,
+        "discount": 30,
+        "auction_date": "2025-06-15",
+        "auction_type": "Judicial",
+        "status": "active",
+        "auctioneer": "Leiloeiro Oficial João Silva",
+        "auctioneer_site": "www.leiloeirojsilva.com.br",
+        "process_number": "1002345-67.2023.8.26.0100",
+        "court": "3ª Vara Cível de São Paulo",
+        "min_bid": 450000,
+        "region_description": "Bairro nobre de São Paulo, próximo ao Shopping Morumbi e com fácil acesso à Marginal Pinheiros. Região com excelente infraestrutura, escolas, hospitais e comércio.",
+        "matricula_pdf_url": "https://exemplo.com/matriculas/123456.pdf",
+        "images": [
+          "https://exemplo.com/imoveis/apto-morumbi-1.jpg",
+          "https://exemplo.com/imoveis/apto-morumbi-2.jpg",
+          "https://exemplo.com/imoveis/apto-morumbi-3.jpg"
+        ],
+        "auctions": [
+          {
+            "auction_number": 1,
+            "auction_date": "2025-06-15",
+            "min_bid": 450000
+          },
+          {
+            "auction_number": 2,
+            "auction_date": "2025-06-29",
+            "min_bid": 315000
+          }
+        ]
+      },
+      {
+        "title": "Casa em condomínio em Alphaville",
+        "description": "Linda casa em condomínio fechado em Alphaville, com 4 dormitórios, sendo 2 suítes, sala ampla, cozinha planejada, área de lazer completa e 4 vagas de garagem.",
+        "type": "Casa",
+        "address": "Alameda Grajau, 325, Residencial 5",
+        "city": "Barueri",
+        "state": "SP",
+        "auction_price": 1200000,
+        "market_price": 1850000,
+        "discount": 35,
+        "auction_date": "2025-06-22",
+        "auction_type": "Extrajudicial",
+        "status": "active",
+        "auctioneer": "Leiloeiro Oficial Maria Santos",
+        "auctioneer_site": "www.leiloeiromsantos.com.br",
+        "process_number": "2003456-78.2023.8.26.0100",
+        "court": "2ª Vara Cível de Barueri",
+        "min_bid": 1200000,
+        "region_description": "Alphaville é um dos bairros mais nobres da região, com excelente infraestrutura, segurança e qualidade de vida. Próximo ao Shopping Tamboré e com fácil acesso à Rodovia Castelo Branco.",
+        "matricula_pdf_url": "https://exemplo.com/matriculas/234567.pdf",
+        "images": [
+          "https://exemplo.com/imoveis/casa-alphaville-1.jpg",
+          "https://exemplo.com/imoveis/casa-alphaville-2.jpg",
+          "https://exemplo.com/imoveis/casa-alphaville-3.jpg"
+        ],
+        "auctions": [
+          {
+            "auction_number": 1,
+            "auction_date": "2025-06-22",
+            "min_bid": 1200000
+          }
+        ]
+      },
+      {
+        "title": "Terreno comercial na Marginal Tietê",
+        "description": "Terreno comercial com 500m² de área, localizado em região de grande fluxo, próximo à Marginal Tietê. Excelente para construção de galpão ou comércio.",
+        "type": "Terreno",
+        "address": "Avenida Marginal Tietê, 2500",
+        "city": "São Paulo",
+        "state": "SP",
+        "auction_price": 900000,
+        "market_price": 1300000,
+        "discount": 31,
+        "auction_date": "2025-07-05",
+        "auction_type": "Banco",
+        "status": "pending",
+        "auctioneer": "Leiloeiro Oficial Carlos Oliveira",
+        "auctioneer_site": "www.leiloeirocoliveira.com.br",
+        "process_number": "3004567-89.2023.8.26.0100",
+        "court": "1ª Vara Cível de São Paulo",
+        "min_bid": 900000,
+        "region_description": "Região de grande fluxo comercial, próxima à Marginal Tietê e com fácil acesso ao centro da cidade. Área em desenvolvimento com grande potencial de valorização.",
+        "matricula_pdf_url": "https://exemplo.com/matriculas/345678.pdf",
+        "images": [
+          "https://exemplo.com/imoveis/terreno-marginal-1.jpg",
+          "https://exemplo.com/imoveis/terreno-marginal-2.jpg"
+        ],
+        "auctions": [
+          {
+            "auction_number": 1,
+            "auction_date": "2025-07-05",
+            "min_bid": 900000
+          }
+        ]
+      }
+    ]
+  }
