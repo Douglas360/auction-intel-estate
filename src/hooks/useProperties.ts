@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from "@/components/ui/use-toast";
@@ -88,9 +89,61 @@ export const useProperties = () => {
         const images = property['images'];
         if (Array.isArray(images) && images.length > 0) {
           imageUrl = images[0];
-        } else if (property.image_url) {
-          imageUrl = property.image_url;
         }
+        
+        // Determine o nível de risco com base no desconto
+        // Se não tiver desconto ou for menor que 30%, risco baixo
+        // Entre 30% e 50%, risco médio
+        // Acima de 50%, risco alto
+        let riskLevel: 'low' | 'medium' | 'high' = 'medium';
+        
+        if (property.discount) {
+          if (property.discount < 30) {
+            riskLevel = 'low';
+          } else if (property.discount >= 30 && property.discount < 50) {
+            riskLevel = 'medium';
+          } else {
+            riskLevel = 'high';
+          }
+        }
+        
+        // Extrair detalhes do imóvel da descrição ou definir como objeto vazio
+        const details = {
+          area: '0',
+          bedrooms: 0,
+          bathrooms: 0,
+          parkingSpots: 0
+        };
+        
+        // Contar quartos, banheiros e vagas a partir da descrição se disponível
+        if (property.description) {
+          const description = property.description.toLowerCase();
+          
+          // Quartos (buscar por padrões como "2 quartos", "2 dormitórios", etc)
+          const bedroomsMatch = description.match(/(\d+)\s*(quarto|dormit[oó]rio|dorm|suíte)/i);
+          if (bedroomsMatch) {
+            details.bedrooms = parseInt(bedroomsMatch[1], 10);
+          }
+          
+          // Banheiros
+          const bathroomsMatch = description.match(/(\d+)\s*(banheiro|wc|lavabo)/i);
+          if (bathroomsMatch) {
+            details.bathrooms = parseInt(bathroomsMatch[1], 10);
+          }
+          
+          // Vagas
+          const parkingMatch = description.match(/(\d+)\s*(vaga|garagem)/i);
+          if (parkingMatch) {
+            details.parkingSpots = parseInt(parkingMatch[1], 10);
+          }
+          
+          // Área
+          const areaMatch = description.match(/(\d+)\s*m²/i);
+          if (areaMatch) {
+            details.area = areaMatch[1] + 'm²';
+          }
+        }
+        
         return {
           id: property.id,
           title: property.title,
@@ -100,13 +153,13 @@ export const useProperties = () => {
           state: property.state,
           auctionPrice: property.auction_price,
           marketPrice: property.market_price,
-          discount: property.discount,
-          auctionDate: property.auctions?.[0]?.auction_date || '',
+          discount: property.discount || 0,
+          auctionDate: property.auction_date || property.auctions?.[0]?.auction_date || '',
           auctionType: property.auction_type || '',
-          riskLevel: property.risk_level || 'medium',
+          riskLevel,
           imageUrl,
           description: property.description,
-          details: property.details as Property['details'],
+          details,
           auctionDetails: {
             auctionHouse: property.auctioneer || '',
             auctionSite: property.auctioneer_site || '',
@@ -114,7 +167,7 @@ export const useProperties = () => {
             auctionCourt: property.court || '',
             firstDate: property.auctions?.[0]?.auction_date || '',
             secondDate: property.auctions?.[1]?.auction_date || '',
-            minimumBid1: property.auctions?.[0]?.min_bid || 0,
+            minimumBid1: property.auctions?.[0]?.min_bid || property.min_bid || 0,
             minimumBid2: property.auctions?.[1]?.min_bid || 0
           }
         };
