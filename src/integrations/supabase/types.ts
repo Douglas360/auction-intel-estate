@@ -319,6 +319,59 @@ export type Database = {
           }
         ];
       },
+      alerts: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          property_type: string;
+          location: string;
+          price_min: number;
+          price_max: number;
+          discount_min: number;
+          status: string;
+          auction_type: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          property_type: string;
+          location: string;
+          price_min: number;
+          price_max: number;
+          discount_min: number;
+          status: string;
+          auction_type: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          name?: string;
+          property_type?: string;
+          location?: string;
+          price_min?: number;
+          price_max?: number;
+          discount_min?: number;
+          status?: string;
+          auction_type?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "alerts_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          }
+        ];
+      },
     }
     Views: {
       [_ in never]: never

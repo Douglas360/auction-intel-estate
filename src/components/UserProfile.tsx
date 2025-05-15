@@ -7,6 +7,7 @@ import { Separator } from '@/components/ui/separator';
 import { User, CreditCard, LogOut, Shield, Mail, Phone } from 'lucide-react';
 import { toast } from "sonner";
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 interface UserProfileProps {
   user: {
@@ -35,9 +36,32 @@ const UserProfile = ({ user }: UserProfileProps) => {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success("Perfil atualizado com sucesso!");
+    if (formData.password && formData.password !== formData.confirmPassword) {
+      toast.error('As senhas não coincidem.');
+      return;
+    }
+    // Atualizar nome e telefone em user_metadata
+    const { error: metaError } = await supabase.auth.updateUser({
+      data: {
+        name: formData.name,
+        phone: formData.phone,
+      },
+    });
+    if (metaError) {
+      toast.error('Erro ao atualizar dados pessoais.');
+      return;
+    }
+    // Atualizar senha se fornecida
+    if (formData.password) {
+      const { error: passError } = await supabase.auth.updateUser({ password: formData.password });
+      if (passError) {
+        toast.error('Erro ao atualizar senha.');
+        return;
+      }
+    }
+    toast.success('Perfil atualizado com sucesso!');
   };
 
   const handleLogout = async () => {
@@ -87,9 +111,10 @@ const UserProfile = ({ user }: UserProfileProps) => {
                   name="email" 
                   type="email" 
                   value={formData.email} 
-                  onChange={handleChange}
-                  required 
+                  disabled
+                  className="bg-gray-100 cursor-not-allowed"
                 />
+                <span className="text-xs text-gray-500">O e-mail não pode ser alterado.</span>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone">Telefone</Label>

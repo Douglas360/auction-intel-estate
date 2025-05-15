@@ -26,6 +26,7 @@ const UserDashboard = () => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [favoriteProperties, setFavoriteProperties] = useState<any[]>([]);
+  const [alertCount, setAlertCount] = useState(0);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -45,7 +46,6 @@ const UserDashboard = () => {
             .from('properties')
             .select('*')
             .in('id', propertyIds);
-          // Mapear para o formato esperado pelo componente UserFavorites
           const mappedFavorites = (propertiesData || []).map((p) => ({
             id: p.id,
             title: p.title,
@@ -65,6 +65,12 @@ const UserDashboard = () => {
         } else {
           setFavoriteProperties([]);
         }
+        // Buscar quantidade de alertas ativos
+        const { data: alerts } = await supabase
+          .from('alerts')
+          .select('id, status')
+          .eq('user_id', session.user.id);
+        setAlertCount(alerts ? alerts.filter(a => a.status === 'ativo').length : 0);
       }
     };
     fetchUser();
@@ -165,8 +171,8 @@ const UserDashboard = () => {
     name: user.user_metadata?.name || user.email,
     email: user.email,
     plan: subscriptionStatus?.plan?.title || 'Gratuito',
-    favoriteCount: 0,
-    alertCount: 0,
+    favoriteCount: favoriteProperties.length,
+    alertCount: alertCount,
     lastAnalysis: '',
     matchingAuctions: 0
   };

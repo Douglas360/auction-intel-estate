@@ -143,16 +143,18 @@ const Index = () => {
             <PricingToggle isYearly={isYearly} onToggle={() => setIsYearly(!isYearly)} />
             
             {activePlans.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
+              <div className="flex flex-wrap justify-center gap-8 mt-8">
                 {activePlans.map((plan) => (
-                  <SubscriptionPlanCard
-                    key={plan.id}
-                    plan={plan}
-                    isCurrentPlan={isCurrentPlan(plan.id)}
-                    isLoading={false}
-                    billingInterval={isYearly ? 'year' : 'month'}
-                    onSubscribe={handleSubscribe}
-                  />
+                  <div className="w-full md:w-[350px]">
+                    <SubscriptionPlanCard
+                      key={plan.id}
+                      plan={plan}
+                      isCurrentPlan={isCurrentPlan(plan.id)}
+                      isLoading={false}
+                      billingInterval={isYearly ? 'year' : 'month'}
+                      onSubscribe={handleSubscribe}
+                    />
+                  </div>
                 ))}
               </div>
             ) : (

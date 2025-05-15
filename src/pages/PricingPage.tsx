@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -15,6 +14,10 @@ const PricingPage = () => {
     subscriptionStatus, 
     isLoading
   } = useSubscription();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   const handleSubscribe = (planId: string) => {
     navigate(`/subscribe/${planId}`);
@@ -37,20 +40,22 @@ const PricingPage = () => {
 
         <PricingToggle isYearly={isYearly} onToggle={() => setIsYearly(!isYearly)} />
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
+        <div className="flex flex-wrap justify-center gap-8 mt-8">
           {plans.map((plan) => (
-            <SubscriptionPlanCard
-              key={plan.id}
-              plan={plan}
-              isCurrentPlan={isCurrentPlan(plan.id)}
-              isLoading={isLoading}
-              billingInterval={isYearly ? 'year' : 'month'}
-              onSubscribe={handleSubscribe}
-            />
+            <div className="w-full md:w-[350px]">
+              <SubscriptionPlanCard
+                key={plan.id}
+                plan={plan}
+                isCurrentPlan={isCurrentPlan(plan.id)}
+                isLoading={isLoading}
+                billingInterval={isYearly ? 'year' : 'month'}
+                onSubscribe={handleSubscribe}
+              />
+            </div>
           ))}
         </div>
 
-        <div className="mt-20 max-w-3xl mx-auto">
+        <div className="mt-20 max-w-3xl mx-auto" id="faq">
           <h2 className="text-2xl font-bold mb-6">Perguntas Frequentes</h2>
           
           <div className="space-y-6">
