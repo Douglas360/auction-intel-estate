@@ -126,15 +126,6 @@ const Admin = () => {
   };
   
   const handleEditProperty = async (property: any) => {
-    setEditingProperty({
-      ...property,
-      auctionPrice: property.auction_price ?? '',
-      marketPrice: property.market_price ?? '',
-      auctionDate: property.auction_date ?? '',
-      auctionType: property.auction_type ?? '',
-      min_bid: property.min_bid ?? '',
-      // Adicione outros campos conforme necessário
-    });
     // Buscar leilões do imóvel
     const { data: auctionsData } = await supabaseAny
       .from('auctions')
@@ -144,6 +135,30 @@ const Admin = () => {
     setAuctions(auctionsData && auctionsData.length > 0 ? auctionsData : [
       { auction_number: 1, auction_date: '', min_bid: '' }
     ]);
+    setEditingProperty({
+      id: property.id,
+      title: property.title || '',
+      description: property.description || '',
+      type: property.type || '',
+      address: property.address || '',
+      city: property.city || '',
+      state: property.state || '',
+      auctionPrice: property.auction_price ?? 0,
+      marketPrice: property.market_price ?? 0,
+      discount: property.discount ?? 0,
+      auctionDate: property.auction_date || '',
+      auctionType: property.auction_type || '',
+      imageUrl: (Array.isArray(property.images) && property.images.length > 0) ? property.images[0] : (property.image_url || ''),
+      status: property.status || 'pending',
+      auctioneer: property.auctioneer || '',
+      auctioneer_site: property.auctioneer_site || '',
+      process_number: property.process_number || '',
+      court: property.court || '',
+      min_bid: property.min_bid ?? 0,
+      region_description: property.region_description || '',
+      matricula_pdf_url: property.matricula_pdf_url || '',
+      images: property.images || [],
+    });
   };
   
   const handleDeleteProperty = async (id: string) => {
@@ -168,6 +183,7 @@ const Admin = () => {
     e.preventDefault();
     setIsSaving(true);
     let imageUrls: string[] = [];
+    // Se o usuário fez upload de novas imagens, faz upload e usa elas
     if (imageFiles.length > 0) {
       for (const file of imageFiles) {
         const fileExt = file.name.split('.').pop();
@@ -181,6 +197,9 @@ const Admin = () => {
         const url = supabaseAny.storage.from('properties-images').getPublicUrl(fileName).data.publicUrl;
         imageUrls.push(url);
       }
+    } else if (editingProperty.images && editingProperty.images.length > 0) {
+      // Se não fez upload, mantém as imagens antigas
+      imageUrls = editingProperty.images;
     }
     const propertyData = {
       title: editingProperty.title,
@@ -564,6 +583,23 @@ const Admin = () => {
                           required
                         />
                       </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="auctionType">Tipo de Leilão</Label>
+                        <Select 
+                          value={editingProperty.auctionType} 
+                          onValueChange={(value) => setEditingProperty({...editingProperty, auctionType: value})}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione o tipo de leilão" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Judicial">Judicial</SelectItem>
+                            <SelectItem value="Extrajudicial">Extrajudicial</SelectItem>
+                            <SelectItem value="Banco">Banco</SelectItem>
+                            <SelectItem value="Outros">Outros</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                       <div className="space-y-2 md:col-span-2">
                         <Label>Leilões</Label>
                         {auctions.map((auction, idx) => (
@@ -615,6 +651,18 @@ const Admin = () => {
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="images">Imagens do Imóvel</Label>
+                        {editingProperty.images && editingProperty.images.length > 0 && (
+                          <div className="flex gap-2 mb-2">
+                            {editingProperty.images.map((imgUrl: string, idx: number) => (
+                              <img
+                                key={idx}
+                                src={imgUrl}
+                                alt={`Imagem ${idx + 1}`}
+                                className="w-16 h-16 object-cover rounded border"
+                              />
+                            ))}
+                          </div>
+                        )}
                         <Input
                           id="images"
                           type="file"
@@ -924,7 +972,7 @@ https://www.megaleiloes.com.br/" />
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="email-from">Email de Envio</Label>
-                      <Input id="email-from" type="email" value="notificacoes@leiloaimobi.com.br" />
+                      <Input id="email-from" type="email" value="notificacoes@HAU.com.br" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="email-template">Template de Notificação</Label>
@@ -940,7 +988,7 @@ Acesse agora para ver mais detalhes:
 {link}
 
 Atenciosamente,
-Equipe LeiloaImobi" />
+Equipe HAU" />
                     </div>
                   </div>
                 </div>

@@ -46,13 +46,13 @@ const Navbar = () => {
             <Link to="/" className="flex ml-2 md:mr-24">
               <img 
                 src="/lovable-uploads/60ab9288-419a-4bab-b06a-a51d1669d4ac.png" 
-                alt="LeiloaImobi Logo" 
+                alt="HAU Logo" 
                 className="h-10" 
               />              
             </Link>
           </div>
           <div className="hidden md:flex items-center space-x-4">
-            <Link to="/search" className="nav-link">Buscar</Link>
+            {/* <Link to="/search" className="nav-link">Buscar</Link> */}
             <Link to="/properties" className="nav-link">Imóveis</Link>
             <Link to="/simulator" className="nav-link">Simulador</Link>
             <Link to="/pricing" className="nav-link">Planos</Link>

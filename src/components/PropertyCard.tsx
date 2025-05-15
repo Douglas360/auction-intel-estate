@@ -1,9 +1,8 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Calendar, Home } from 'lucide-react';
+import { MapPin, Calendar, Home, Gavel } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface PropertyCardProps {
@@ -65,6 +64,7 @@ const PropertyCard = ({
           src={imageUrl || '/placeholder.svg'} 
           alt={title} 
           className="w-full h-full object-cover"
+          onError={e => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }}
         />
         <div className="absolute top-2 right-2">
           <Badge className="discount-badge">
@@ -84,7 +84,7 @@ const PropertyCard = ({
               <Home className="h-4 w-4 mr-1" />
               <span>{type}</span>
             </div>
-          </div>
+                     </div>
           {getRiskBadge(riskLevel)}
         </div>
       </CardHeader>
@@ -97,7 +97,11 @@ const PropertyCard = ({
         
         <div className="flex items-center text-sm text-gray-500 mb-4">
           <Calendar className="h-4 w-4 mr-1" />
-          <span>Leilão em {new Date(auctionDate).toLocaleDateString('pt-BR')}</span>
+          <span>
+            {auctionDate && !isNaN(new Date(auctionDate).getTime())
+              ? `Leilão em ${new Date(auctionDate).toLocaleDateString('pt-BR')}`
+              : 'Data do leilão não informada'}
+          </span>
         </div>
 
         <div className="space-y-1">

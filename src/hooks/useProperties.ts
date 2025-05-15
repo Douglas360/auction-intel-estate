@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from "@/components/ui/use-toast";
@@ -46,116 +45,86 @@ export const useProperties = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Esta função no MVP vai retornar dados mockados, mas está estruturada
-  // para ser facilmente adaptada para buscar dados reais do Supabase
   const fetchProperties = async () => {
     setIsLoading(true);
     setError(null);
     
     try {
-      // Aqui seria a chamada para o Supabase
-      // const { data, error } = await supabase.from('properties').select('*');
+      console.log('Iniciando busca de imóveis no Supabase...');
       
-      // Simulando resposta do banco de dados com dados mockados
-      // Em uma implementação real, isso viria do Supabase
-      const mockProperties = [
-        {
-          id: '1',
-          title: 'Apartamento 3 dormitórios no Morumbi',
-          type: 'Apartamento',
-          address: 'Rua Engenheiro João de Ulhôa Cintra, 214, Apto 132',
-          city: 'São Paulo',
-          state: 'SP',
-          auctionPrice: 450000,
-          marketPrice: 650000,
-          discount: 30,
-          auctionDate: '2025-06-15',
-          auctionType: 'Judicial',
-          riskLevel: 'low' as 'low',
-          imageUrl: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267'
-        },
-        {
-          id: '2',
-          title: 'Casa em condomínio em Alphaville',
-          type: 'Casa',
-          address: 'Alameda Grajau, 325, Residencial 5',
-          city: 'Barueri',
-          state: 'SP',
-          auctionPrice: 1200000,
-          marketPrice: 1850000,
-          discount: 35,
-          auctionDate: '2025-06-22',
-          auctionType: 'Extrajudicial',
-          riskLevel: 'medium' as 'medium',
-          imageUrl: 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914'
-        },
-        {
-          id: '3',
-          title: 'Terreno comercial na Marginal Tietê',
-          type: 'Terreno',
-          address: 'Avenida Marginal Tietê, 2500',
-          city: 'São Paulo',
-          state: 'SP',
-          auctionPrice: 900000,
-          marketPrice: 1300000,
-          discount: 31,
-          auctionDate: '2025-07-05',
-          auctionType: 'Banco',
-          riskLevel: 'low' as 'low',
-          imageUrl: 'https://images.unsplash.com/photo-1582407947304-fd86f028f716'
-        },
-        {
-          id: '4',
-          title: 'Galpão industrial em Guarulhos',
-          type: 'Comercial',
-          address: 'Rodovia Presidente Dutra, km 225',
-          city: 'Guarulhos',
-          state: 'SP',
-          auctionPrice: 1600000,
-          marketPrice: 2500000,
-          discount: 36,
-          auctionDate: '2025-06-28',
-          auctionType: 'Judicial',
-          riskLevel: 'high' as 'high',
-          imageUrl: 'https://images.unsplash.com/photo-1664425992088-444edfc5f143'
-        },
-        {
-          id: '5',
-          title: 'Cobertura duplex na Vila Nova Conceição',
-          type: 'Apartamento',
-          address: 'Rua Afonso Braz, 115, Cobertura 01',
-          city: 'São Paulo',
-          state: 'SP',
-          auctionPrice: 2400000,
-          marketPrice: 3800000,
-          discount: 37,
-          auctionDate: '2025-07-12',
-          auctionType: 'Banco',
-          riskLevel: 'medium' as 'medium',
-          imageUrl: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750'
-        },
-        {
-          id: '6',
-          title: 'Fazenda produtiva em Ribeirão Preto',
-          type: 'Rural',
-          address: 'Rodovia SP-330, km 325',
-          city: 'Ribeirão Preto',
-          state: 'SP',
-          auctionPrice: 4500000,
-          marketPrice: 6200000,
-          discount: 27,
-          auctionDate: '2025-08-05',
-          auctionType: 'Judicial',
-          riskLevel: 'high' as 'high',
-          imageUrl: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef'
-        }
-      ];
+      // Buscar imóveis do Supabase
+      const { data: propertiesData, error: propertiesError } = await supabase
+        .from('properties')
+        .select(`
+          *,
+          auctions (
+            auction_number,
+            auction_date,
+            min_bid
+          )
+        `)
+        .order('created_at', { ascending: false });
 
-      setProperties(mockProperties);
-      setFeaturedProperties(mockProperties.slice(0, 3));
-      
-      // Se tivesse erro do Supabase:
-      // if (error) throw error;
+      console.log('Resposta do Supabase:', { propertiesData, propertiesError });
+
+      if (propertiesError) {
+        console.error('Erro ao buscar imóveis:', propertiesError);
+        throw propertiesError;
+      }
+
+      if (!propertiesData || propertiesData.length === 0) {
+        console.log('Nenhum imóvel encontrado no banco de dados');
+        setProperties([]);
+        setFeaturedProperties([]);
+        return;
+      }
+
+      // Transformar os dados do Supabase para o formato esperado pela aplicação
+      const formattedProperties = propertiesData.map(property => {
+        console.log('Transformando imóvel:', property);
+        // Corrigir imagem
+        let imageUrl = '/placeholder.svg';
+        
+        const images = property['images'];
+        if (Array.isArray(images) && images.length > 0) {
+          imageUrl = images[0];
+        } else if (property.image_url) {
+          imageUrl = property.image_url;
+        }
+        return {
+          id: property.id,
+          title: property.title,
+          type: property.type,
+          address: property.address,
+          city: property.city,
+          state: property.state,
+          auctionPrice: property.auction_price,
+          marketPrice: property.market_price,
+          discount: property.discount,
+          auctionDate: property.auctions?.[0]?.auction_date || '',
+          auctionType: property.auction_type || '',
+          riskLevel: property.risk_level || 'medium',
+          imageUrl,
+          description: property.description,
+          details: property.details as Property['details'],
+          auctionDetails: {
+            auctionHouse: property.auctioneer || '',
+            auctionSite: property.auctioneer_site || '',
+            auctionProcess: property.process_number || '',
+            auctionCourt: property.court || '',
+            firstDate: property.auctions?.[0]?.auction_date || '',
+            secondDate: property.auctions?.[1]?.auction_date || '',
+            minimumBid1: property.auctions?.[0]?.min_bid || 0,
+            minimumBid2: property.auctions?.[1]?.min_bid || 0
+          }
+        };
+      });
+
+      console.log('Imóveis formatados:', formattedProperties);
+
+      setProperties(formattedProperties);
+      // Definir os 3 primeiros imóveis como destaque
+      setFeaturedProperties(formattedProperties.slice(0, 3));
       
     } catch (err) {
       console.error('Erro ao buscar propriedades:', err);
@@ -175,6 +144,7 @@ export const useProperties = () => {
   };
 
   useEffect(() => {
+    console.log('useProperties hook montado, buscando imóveis...');
     fetchProperties();
   }, []);
 

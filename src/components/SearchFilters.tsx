@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
   Card,
@@ -24,7 +23,7 @@ import {
 } from "@/components/ui/accordion";
 
 const SearchFilters = ({ onSearch }: { onSearch: (filters: any) => void }) => {
-  const [filters, setFilters] = useState({
+  const defaultFilters = {
     location: '',
     propertyType: '',
     minPrice: 0,
@@ -32,7 +31,8 @@ const SearchFilters = ({ onSearch }: { onSearch: (filters: any) => void }) => {
     auctionType: '',
     discount: 0,
     riskLevel: ''
-  });
+  };
+  const [filters, setFilters] = useState(defaultFilters);
   
   const handleChange = (name: string, value: any) => {
     setFilters({
@@ -44,6 +44,11 @@ const SearchFilters = ({ onSearch }: { onSearch: (filters: any) => void }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSearch(filters);
+  };
+
+  const handleReset = () => {
+    setFilters(defaultFilters);
+    onSearch(defaultFilters);
   };
 
   const propertyTypes = ['Apartamento', 'Casa', 'Terreno', 'Comercial', 'Rural'];
@@ -200,6 +205,9 @@ const SearchFilters = ({ onSearch }: { onSearch: (filters: any) => void }) => {
 
           <Button type="submit" className="w-full bg-auction-primary hover:bg-auction-secondary">
             Buscar Imóveis
+          </Button>
+          <Button type="button" variant="outline" className="w-full mt-2" onClick={handleReset}>
+            Resetar filtros
           </Button>
         </form>
       </CardContent>

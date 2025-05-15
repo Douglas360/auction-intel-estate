@@ -5,124 +5,40 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Navbar from '@/components/Navbar';
 import RiskAnalyzer from '@/components/RiskAnalyzer';
 import ProfitSimulator from '@/components/ProfitSimulator';
-import { Calendar, MapPin, Home, DollarSign, Clock, Gavel, AlertTriangle } from 'lucide-react';
+import { Calendar, MapPin, Home, DollarSign, Clock, Gavel, AlertTriangle, Heart, Share2 } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from "@/components/ui/use-toast";
-
-// For the MVP, we're using mock data
-const propertyData = {
-  id: '1',
-  title: 'Apartamento 3 dormitórios no Morumbi',
-  type: 'Apartamento',
-  address: 'Rua Engenheiro João de Ulhôa Cintra, 214, Apto 132',
-  city: 'São Paulo',
-  state: 'SP',
-  auctionPrice: 450000,
-  marketPrice: 650000,
-  discount: 30,
-  auctionDate: '2025-06-15',
-  auctionType: 'Judicial',
-  riskLevel: 'low',
-  imageUrl: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267',
-  description: `Excelente apartamento com 3 dormitórios, sendo 1 suíte, com 92m² de área útil, 2 vagas de garagem, localizado no bairro Morumbi. O condomínio possui área de lazer completa com piscina, salão de festas, academia e playground.
-
-O imóvel está desocupado e precisa de pequena reforma. Existem débitos de condomínio que serão quitados pelo arrematante.
-
-Leilão judicial da 3ª Vara Cível de São Paulo, processo nº 1002345-67.2023.8.26.0100.`,
-  details: {
-    area: '92m²',
-    bedrooms: 3,
-    bathrooms: 2,
-    parkingSpots: 2,
-    floor: 13,
-    yearBuilt: 2010,
-    condominium: 850,
-    iptu: 2400
-  },
-  auctionDetails: {
-    auctionHouse: 'Leiloeiro Oficial João Silva',
-    auctionSite: 'www.leiloeirojsilva.com.br',
-    auctionProcess: '1002345-67.2023.8.26.0100',
-    auctionCourt: '3ª Vara Cível de São Paulo',
-    firstDate: '2025-06-15',
-    secondDate: '2025-06-29',
-    minimumBid1: 450000,
-    minimumBid2: 315000,
-  },
-  coordinates: {
-    lat: -23.5987,
-    lng: -46.7240
-  }
-};
-
-// Mock database with properties for the detail page
-const propertiesDatabase = {
-  '1': {
-    ...propertyData
-  },
-  '2': {
-    ...propertyData,
-    id: '2',
-    title: 'Casa em condomínio em Alphaville',
-    type: 'Casa',
-    address: 'Alameda Grajau, 325, Residencial 5',
-    city: 'Barueri',
-    state: 'SP',
-    auctionPrice: 1200000,
-    marketPrice: 1850000,
-    discount: 35,
-    imageUrl: 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914',
-    details: {
-      ...propertyData.details,
-      area: '280m²',
-      bedrooms: 4,
-      bathrooms: 3,
-      parkingSpots: 4
-    },
-    coordinates: {
-      lat: -23.4840,
-      lng: -46.8520
-    }
-  },
-  '3': {
-    ...propertyData,
-    id: '3',
-    title: 'Terreno comercial na Marginal Tietê',
-    type: 'Terreno',
-    address: 'Avenida Marginal Tietê, 2500',
-    city: 'São Paulo',
-    state: 'SP',
-    auctionPrice: 900000,
-    marketPrice: 1300000,
-    discount: 31,
-    imageUrl: 'https://images.unsplash.com/photo-1582407947304-fd86f028f716',
-    coordinates: {
-      lat: -23.5200,
-      lng: -46.6360
-    }
-  }
-};
+import { useProperties } from '@/hooks/useProperties';
 
 const PropertyDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  
-  // Get property data based on ID from URL params
-  const property = id ? propertiesDatabase[id as keyof typeof propertiesDatabase] : propertyData;
-  
-  // If property doesn't exist in our mock database, show a message and redirect
-  if (!property) {
+  const { properties, isLoading, error } = useProperties();
+
+  const property = properties.find((p) => p.id === id);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 pt-20">
+        <Navbar />
+        <div className="container mx-auto max-w-7xl px-4 pt-10">
+          <div className="text-center py-20">
+            <p>Carregando imóvel...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !property) {
     toast({
       title: "Imóvel não encontrado",
       description: "O imóvel que você está procurando não está disponível.",
       variant: "destructive",
     });
-    
-    // Redirect after a short delay
     setTimeout(() => {
       navigate('/properties');
     }, 2000);
-    
     return (
       <div className="min-h-screen bg-gray-50 pt-20">
         <Navbar />
@@ -143,9 +59,11 @@ const PropertyDetail = () => {
       currency: 'BRL'
     }).format(value);
   };
-  
+
   const formatDate = (dateStr: string) => {
+    if (!dateStr) return '-';
     const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return '-';
     return date.toLocaleDateString('pt-BR');
   };
 
@@ -159,162 +77,166 @@ const PropertyDetail = () => {
             {/* Image Gallery */}
             <div className="bg-white rounded-lg overflow-hidden shadow-sm mb-6">
               <img 
-                src={property.imageUrl} 
+                src={property.imageUrl || '/placeholder.svg'} 
                 alt={property.title} 
                 className="w-full h-80 object-cover"
               />
             </div>
-            
-            {/* Property header */}
-            <div className="bg-white rounded-lg p-6 shadow-sm mb-6">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h1 className="text-3xl font-bold mb-2">{property.title}</h1>
-                  <div className="flex items-center text-gray-600 mb-2">
-                    <MapPin className="h-4 w-4 mr-1" />
-                    <span>{property.address}, {property.city} - {property.state}</span>
-                  </div>
-                  <div className="flex items-center space-x-4 text-sm">
-                    <div className="flex items-center">
-                      <Home className="h-4 w-4 mr-1 text-gray-700" />
-                      <span>{property.type}</span>
-                    </div>
-                    <div className="flex items-center">
-                      <DollarSign className="h-4 w-4 mr-1 text-green-600" />
-                      <span>{formatCurrency(property.auctionPrice)}</span>
-                    </div>
-                    <div className="flex items-center">
-                      <Calendar className="h-4 w-4 mr-1 text-gray-700" />
-                      <span>{formatDate(property.auctionDate)}</span>
-                    </div>
-                  </div>
-                </div>
-                <Badge className="discount-badge text-base">
+            {/* Bloco de informações principais */}
+            <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+              {/* Linha 1: Título à esquerda, badge à direita */}
+              <div className="flex items-center justify-between gap-2 min-w-0">
+                <h1 className="text-2xl md:text-3xl font-bold min-w-0">{property.title}</h1>
+                <Badge className="discount-badge text-base whitespace-nowrap bg-auction-primary text-white px-4 py-2 rounded-full">
                   {property.discount}% abaixo do mercado
                 </Badge>
               </div>
-              
-              <div className="flex flex-wrap gap-4 mt-6">
-                <Button className="bg-auction-primary hover:bg-auction-secondary">
-                  Quero arrematar
+              {/* Linha 2: Endereço */}
+              <div className="flex items-center text-gray-600 text-sm mt-1">
+                <MapPin className="h-4 w-4 mr-1" />
+                <span>{property.address}, {property.city} - {property.state}</span>
+              </div>
+              {/* Linha 3: tipo, valor, data */}
+              <div className="flex items-center space-x-4 text-sm mt-2">
+                <div className="flex items-center">
+                  <Home className="h-4 w-4 mr-1 text-gray-700" />
+                  <span>{property.type}</span>
+                </div>
+                <div className="flex items-center">
+                  <DollarSign className="h-4 w-4 mr-1 text-green-600" />
+                  <span>{formatCurrency(property.auctionPrice)}</span>
+                </div>
+                <div className="flex items-center">
+                  <Calendar className="h-4 w-4 mr-1 text-gray-700" />
+                  <span>{formatDate(property.auctionDate)}</span>
+                </div>
+              </div>
+              {/* Linha 4: Botões */}
+              <div className="flex flex-wrap gap-2 mt-4">
+                <Button className="bg-auction-primary hover:bg-auction-secondary flex items-center gap-2">
+                  <Gavel className="w-4 h-4" /> Quero arrematar
                 </Button>
-                <Button variant="outline" className="border-auction-primary text-auction-primary hover:bg-auction-primary hover:text-white">
-                  Adicionar aos favoritos
+                <Button variant="outline" className="border-auction-primary text-auction-primary hover:bg-auction-primary hover:text-white flex items-center gap-2">
+                  <Heart className="w-4 h-4" /> Adicionar aos favoritos
                 </Button>
-                <Button variant="outline">
-                  Compartilhar
+                <Button variant="outline" className="flex items-center gap-2">
+                  <Share2 className="w-4 h-4" /> Compartilhar
                 </Button>
               </div>
             </div>
-            
-            {/* Property tabs */}
+            {/* Tabs */}
             <Tabs defaultValue="details" className="bg-white rounded-lg shadow-sm">
               <TabsList className="w-full border-b">
                 <TabsTrigger value="details" className="flex-1">Detalhes</TabsTrigger>
                 <TabsTrigger value="auction" className="flex-1">Informações do Leilão</TabsTrigger>
                 <TabsTrigger value="location" className="flex-1">Localização</TabsTrigger>
               </TabsList>
-              
+              {/* Detalhes */}
               <TabsContent value="details" className="p-6 space-y-6">
                 <div>
-                  <h3 className="text-xl font-semibold mb-3">Descrição</h3>
-                  <p className="text-gray-600 whitespace-pre-line">{propertyData.description}</p>
+                  <h2 className="text-xl font-semibold mb-2">Descrição</h2>
+                  <p className="text-gray-700 whitespace-pre-line">{property.description}</p>
                 </div>
-
                 <div>
-                  <h3 className="text-xl font-semibold mb-3">Comparativo de Preços</h3>
+                  <h2 className="text-xl font-semibold mb-2">Comparativo de Preços</h2>
                   <div className="bg-gray-50 p-4 rounded-md">
                     <div className="flex justify-between mb-2">
                       <span>Valor do Leilão:</span>
-                      <span className="font-bold">{formatCurrency(propertyData.auctionPrice)}</span>
+                      <span className="font-bold">{formatCurrency(property.auctionPrice)}</span>
                     </div>
                     <div className="flex justify-between mb-2">
                       <span>Valor de Mercado:</span>
-                      <span className="font-bold">{formatCurrency(propertyData.marketPrice)}</span>
+                      <span className="font-bold">{formatCurrency(property.marketPrice)}</span>
                     </div>
                     <div className="flex justify-between text-green-600">
                       <span>Economia:</span>
-                      <span className="font-bold">{formatCurrency(propertyData.marketPrice - propertyData.auctionPrice)}</span>
+                      <span className="font-bold">{formatCurrency(property.marketPrice - property.auctionPrice)}</span>
                     </div>
                   </div>
                 </div>
+                {property.details && (
+                  <div>
+                    <h2 className="text-xl font-semibold mb-2">Detalhes Técnicos</h2>
+                    <ul className="list-disc pl-6 text-gray-700">
+                      {property.details.area && <li><strong>Área:</strong> {property.details.area}</li>}
+                      {property.details.bedrooms && <li><strong>Dormitórios:</strong> {property.details.bedrooms}</li>}
+                      {property.details.bathrooms && <li><strong>Banheiros:</strong> {property.details.bathrooms}</li>}
+                      {property.details.parkingSpots && <li><strong>Vagas:</strong> {property.details.parkingSpots}</li>}
+                      {property.details.floor && <li><strong>Andar:</strong> {property.details.floor}</li>}
+                      {property.details.yearBuilt && <li><strong>Ano de construção:</strong> {property.details.yearBuilt}</li>}
+                      {property.details.condominium && <li><strong>Condomínio:</strong> {formatCurrency(property.details.condominium)}</li>}
+                      {property.details.iptu && <li><strong>IPTU:</strong> {formatCurrency(property.details.iptu)}</li>}
+                    </ul>
+                  </div>
+                )}
               </TabsContent>
-              
+              {/* Informações do Leilão */}
               <TabsContent value="auction" className="p-6 space-y-6">
-                <div>
-                  <h3 className="text-xl font-semibold mb-3">Detalhes do Leilão</h3>
-                  
-                  <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
-                    <div className="flex">
-                      <AlertTriangle className="h-6 w-6 text-yellow-500 mr-2" />
-                      <div>
-                        <h4 className="font-semibold">Aviso importante</h4>
-                        <p className="text-sm text-gray-600">
-                          As informações aqui apresentadas são baseadas no edital do leilão. Sempre consulte o edital completo e busque assessoria jurídica antes de participar de qualquer leilão.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+                  <div className="flex">
+                    <AlertTriangle className="h-6 w-6 text-yellow-500 mr-2" />
                     <div>
-                      <span className="text-gray-500 text-sm">Leiloeiro</span>
-                      <p className="font-semibold">{propertyData.auctionDetails.auctionHouse}</p>
-                    </div>
-                    <div>
-                      <span className="text-gray-500 text-sm">Site do Leiloeiro</span>
-                      <p className="font-semibold">{propertyData.auctionDetails.auctionSite}</p>
-                    </div>
-                    <div>
-                      <span className="text-gray-500 text-sm">Processo</span>
-                      <p className="font-semibold">{propertyData.auctionDetails.auctionProcess}</p>
-                    </div>
-                    <div>
-                      <span className="text-gray-500 text-sm">Vara/Tribunal</span>
-                      <p className="font-semibold">{propertyData.auctionDetails.auctionCourt}</p>
+                      <h4 className="font-semibold">Aviso importante</h4>
+                      <p className="text-sm text-gray-600">
+                        As informações aqui apresentadas são baseadas no edital do leilão. Sempre consulte o edital completo e busque assessoria jurídica antes de participar de qualquer leilão.
+                      </p>
                     </div>
                   </div>
                 </div>
-
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <span className="text-gray-500 text-sm">Leiloeiro</span>
+                    <p className="font-semibold">{property.auctionDetails?.auctionHouse}</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-500 text-sm">Site do Leiloeiro</span>
+                    <p className="font-semibold">{property.auctionDetails?.auctionSite}</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-500 text-sm">Processo</span>
+                    <p className="font-semibold">{property.auctionDetails?.auctionProcess}</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-500 text-sm">Vara/Tribunal</span>
+                    <p className="font-semibold">{property.auctionDetails?.auctionCourt}</p>
+                  </div>
+                </div>
                 <div>
                   <h3 className="text-xl font-semibold mb-3">Datas e Valores</h3>
-                  
                   <div className="space-y-4">
                     <div className="bg-gray-50 p-4 rounded-md">
                       <div className="flex items-center mb-2">
                         <Gavel className="h-5 w-5 mr-2 text-auction-primary" />
-                        <h4 className="font-semibold">1º Leilão - {formatDate(propertyData.auctionDetails.firstDate)}</h4>
+                        <h4 className="font-semibold">1º Leilão - {formatDate(property.auctionDetails?.firstDate)}</h4>
                       </div>
                       <p className="text-sm text-gray-600 mb-2">
                         No 1º leilão, o valor mínimo para lance é o valor de avaliação do imóvel.
                       </p>
                       <div className="flex justify-between">
                         <span>Lance mínimo:</span>
-                        <span className="font-bold">{formatCurrency(propertyData.auctionDetails.minimumBid1)}</span>
+                        <span className="font-bold">{formatCurrency(property.auctionDetails?.minimumBid1 || 0)}</span>
                       </div>
                     </div>
-                    
                     <div className="bg-gray-50 p-4 rounded-md">
                       <div className="flex items-center mb-2">
                         <Gavel className="h-5 w-5 mr-2 text-auction-primary" />
-                        <h4 className="font-semibold">2º Leilão - {formatDate(propertyData.auctionDetails.secondDate)}</h4>
+                        <h4 className="font-semibold">2º Leilão - {formatDate(property.auctionDetails?.secondDate)}</h4>
                       </div>
                       <p className="text-sm text-gray-600 mb-2">
                         No 2º leilão, caso o 1º não tenha lances, o valor mínimo costuma ser menor.
                       </p>
                       <div className="flex justify-between">
                         <span>Lance mínimo:</span>
-                        <span className="font-bold">{formatCurrency(propertyData.auctionDetails.minimumBid2)}</span>
+                        <span className="font-bold">{formatCurrency(property.auctionDetails?.minimumBid2 || 0)}</span>
                       </div>
                     </div>
                   </div>
                 </div>
-                
                 <Button className="w-full bg-auction-primary hover:bg-auction-secondary">
                   Quero participar deste leilão
                 </Button>
               </TabsContent>
-              
+              {/* Localização */}
               <TabsContent value="location" className="p-6">
                 <h3 className="text-xl font-semibold mb-3">Localização do Imóvel</h3>
                 <p className="text-gray-600 mb-4">
@@ -330,7 +252,7 @@ const PropertyDetail = () => {
                     referrerPolicy="no-referrer-when-downgrade"
                     src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBLo0Vh9TmVkFUSFDRUwgEf6LFcR17tKFw&q=${encodeURIComponent(
                       `${property.address}, ${property.city}, ${property.state}`
-                    )}&center=${property.coordinates.lat},${property.coordinates.lng}&zoom=15`}
+                    )}`}
                   ></iframe>
                 </div>
                 <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mt-4">
@@ -343,7 +265,6 @@ const PropertyDetail = () => {
               </TabsContent>
             </Tabs>
           </div>
-          
           {/* Sidebar */}
           <div className="w-full md:w-1/3 space-y-6">
             <RiskAnalyzer />
@@ -356,3 +277,4 @@ const PropertyDetail = () => {
 };
 
 export default PropertyDetail;
+

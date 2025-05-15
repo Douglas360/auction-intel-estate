@@ -88,7 +88,7 @@ const Index = () => {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+    navigate(`/properties?q=${encodeURIComponent(searchQuery)}`);
   };
 
   return (
