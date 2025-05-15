@@ -1,8 +1,7 @@
-
 import React from 'react';
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Calendar, Gavel, AlertTriangle } from "lucide-react";
+import { MapPin, Calendar, Gavel, AlertTriangle, Heart } from "lucide-react";
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 
@@ -10,7 +9,7 @@ import { Button } from "@/components/ui/button";
 const riskColors: Record<string, string> = {
   low: "bg-green-500",
   medium: "bg-yellow-500",
-  high: "bg-red-500"
+  high: "bg-red-400"
 };
 
 // Define risk level labels
@@ -88,7 +87,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
     
   return (
     <CardWrapper>
-      <Card className="overflow-hidden h-full">
+      <Card className="overflow-hidden h-full transition-transform duration-300 hover:scale-[1.015] hover:shadow-lg focus-within:scale-[1.015] focus-within:shadow-lg">
         {/* Property image with discount badge */}
         <div className="relative">
           <img 
@@ -96,20 +95,24 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
             alt={title} 
             className="w-full h-48 object-cover"
           />
-          <Badge className="absolute top-2 left-2 bg-blue-600 text-white">
+          {/* Badge de desconto sem tooltip */}
+          <Badge className="absolute top-2 right-2 bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-none animate-fade-in">
             {discount}% abaixo do mercado
           </Badge>
-          
-          <div className="absolute bottom-0 left-0 right-0 bg-blue-600 text-white p-2 text-center">
-            Venda Online Caixa
+          {/* Badge de tipo de leilão sem tooltip */}
+          <div className="absolute bottom-0 left-2 mb-2">
+            <Badge className="bg-blue-600 text-white px-2 py-0.5 rounded-full text-xs font-medium shadow-none animate-slide-in">
+              {auctionType || 'Venda Online Caixa'}
+            </Badge>
           </div>
         </div>
         
         <CardContent className="p-4">
           <div className="flex justify-between items-start mb-2">
             <h3 className="font-bold text-lg line-clamp-1">{title || `${propertyType} Caixa em ${city}`}</h3>
-            <div className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-md">
-              Risco<br />Médio
+            <div className={`${riskColors[riskLevel]} text-xs px-2 py-1 rounded-md`}>
+              Risco<br />
+              {riskLabels[riskLevel].replace(' risco', '')}
             </div>
           </div>
           
@@ -137,7 +140,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
         
         <CardFooter className="flex flex-col gap-2 p-4 pt-0">
           <Button 
-            className="w-full bg-blue-600 hover:bg-blue-700"
+            className="w-full bg-blue-600 hover:bg-blue-700 transition-transform duration-200 hover:scale-105 focus:scale-105 focus:ring-2 focus:ring-blue-400"
             onClick={(e) => {
               if (clickable) {
                 e.preventDefault();
@@ -147,12 +150,11 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
           >
             Ver detalhes
           </Button>
-          
           <Button 
             variant="outline" 
-            className="w-full border-blue-600 text-blue-600 hover:bg-blue-50"
+            className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 flex items-center justify-center gap-2 transition-transform duration-200 hover:scale-105 focus:scale-105 focus:ring-2 focus:ring-blue-200"
           >
-            Adicionar aos favoritos
+            <Heart className="w-4 h-4 mr-1" /> Adicionar aos favoritos
           </Button>
         </CardFooter>
       </Card>
