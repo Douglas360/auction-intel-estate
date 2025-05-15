@@ -109,6 +109,8 @@ const Admin = () => {
     { auction_number: 1, auction_date: '', min_bid: '' }
   ]);
   const [propertyAuctions, setPropertyAuctions] = useState<Record<string, any>>({});
+  const [settings, setSettings] = useState<any>(null);
+  const [isLoadingSettings, setIsLoadingSettings] = useState(false);
   
   const formatCurrency = (value: number) => {
     if (!value || isNaN(value)) return 'R$ 0,00';
@@ -331,6 +333,44 @@ const Admin = () => {
     };
     fetchAllAuctions();
   }, [properties]);
+
+  const fetchSettings = async () => {
+    setIsLoadingSettings(true);
+    const { data, error } = await supabaseAny.from('system_settings').select('*').single();
+    if (!error && data) setSettings(data);
+    setIsLoadingSettings(false);
+  };
+
+  useEffect(() => {
+    if (activeTab === 'settings') fetchSettings();
+  }, [activeTab]);
+
+  const handleSettingsChange = (field: string, value: any) => {
+    setSettings((prev: any) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSaveSettings = async () => {
+    if (!settings) return;
+    setIsLoadingSettings(true);
+    const { error } = await supabaseAny
+      .from('system_settings')
+      .update({
+        openai_api_key: settings.openai_api_key,
+        google_maps_api_key: settings.google_maps_api_key,
+        scraping_interval: settings.scraping_interval,
+        scraping_sites: settings.scraping_sites,
+        notification_email: settings.notification_email,
+        notification_template: settings.notification_template,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', settings.id);
+    setIsLoadingSettings(false);
+    if (error) {
+      toast.error('Erro ao salvar configurações: ' + error.message);
+    } else {
+      toast.success('Configurações salvas com sucesso!');
+    }
+  };
   
   return (
     <div className="min-h-screen bg-gray-50">
@@ -937,65 +977,56 @@ const Admin = () => {
                 <CardTitle>Configurações do Sistema</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <h3 className="text-lg font-medium">Integração com APIs</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {isLoadingSettings ? (
+                  <div>Carregando configurações...</div>
+                ) : settings ? (
+                  <>
                     <div className="space-y-2">
-                      <Label htmlFor="openai-api">OpenAI API Key</Label>
-                      <Input id="openai-api" type="password" value="sk-..." />
+                      <h3 className="text-lg font-medium">Integração com APIs</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="openai-api">OpenAI API Key</Label>
+                          <Input id="openai-api" type="password" value={settings.openai_api_key || ''} onChange={e => handleSettingsChange('openai_api_key', e.target.value)} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="maps-api">Google Maps API Key</Label>
+                          <Input id="maps-api" type="password" value={settings.google_maps_api_key || ''} onChange={e => handleSettingsChange('google_maps_api_key', e.target.value)} />
+                        </div>
+                      </div>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="maps-api">Google Maps API Key</Label>
-                      <Input id="maps-api" type="password" value="AIzaSy..." />
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <h3 className="text-lg font-medium">Configurações de Scraping</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="scraping-interval">Intervalo de Atualização (horas)</Label>
-                      <Input id="scraping-interval" type="number" value="12" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="scraping-sites">Sites de Leilão para Monitorar</Label>
-                      <Textarea id="scraping-sites" className="min-h-[100px]" defaultValue="https://www.leilaoimovel.com.br/
-https://www.leiloeiro.online/
-https://www.megaleiloes.com.br/" />
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <h3 className="text-lg font-medium">Notificações</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="email-from">Email de Envio</Label>
-                      <Input id="email-from" type="email" value="notificacoes@HAU.com.br" />
+                      <h3 className="text-lg font-medium">Configurações de Scraping</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="scraping-interval">Intervalo de Atualização (horas)</Label>
+                          <Input id="scraping-interval" type="number" value={settings.scraping_interval || ''} onChange={e => handleSettingsChange('scraping_interval', e.target.value)} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="scraping-sites">Sites de Leilão para Monitorar</Label>
+                          <Textarea id="scraping-sites" className="min-h-[100px]" value={settings.scraping_sites || ''} onChange={e => handleSettingsChange('scraping_sites', e.target.value)} />
+                        </div>
+                      </div>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="email-template">Template de Notificação</Label>
-                      <Textarea id="email-template" className="min-h-[100px]" defaultValue="Olá {nome},
-
-Encontramos um novo imóvel que corresponde aos seus critérios de busca:
-
-{titulo_imovel}
-Valor: {valor_leilao}
-Desconto: {desconto}%
-
-Acesse agora para ver mais detalhes:
-{link}
-
-Atenciosamente,
-Equipe HAU" />
+                      <h3 className="text-lg font-medium">Notificações</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="email-from">Email de Envio</Label>
+                          <Input id="email-from" type="email" value={settings.notification_email || ''} onChange={e => handleSettingsChange('notification_email', e.target.value)} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="email-template">Template de Notificação</Label>
+                          <Textarea id="email-template" className="min-h-[100px]" value={settings.notification_template || ''} onChange={e => handleSettingsChange('notification_template', e.target.value)} />
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-                
+                  </>
+                ) : (
+                  <div>Não foi possível carregar as configurações.</div>
+                )}
                 <div className="pt-4 flex justify-end space-x-2">
-                  <Button variant="outline">Cancelar</Button>
-                  <Button className="bg-auction-primary hover:bg-auction-secondary" onClick={() => toast.success("Configurações salvas com sucesso!")}>
+                  <Button variant="outline" onClick={fetchSettings} disabled={isLoadingSettings}>Cancelar</Button>
+                  <Button className="bg-auction-primary hover:bg-auction-secondary" onClick={handleSaveSettings} disabled={isLoadingSettings}>
                     Salvar Configurações
                   </Button>
                 </div>

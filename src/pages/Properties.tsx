@@ -4,10 +4,16 @@ import PropertyCard from '@/components/PropertyCard';
 import { useProperties } from '@/hooks/useProperties';
 import { Button } from '@/components/ui/button';
 import SearchFilters from '@/components/SearchFilters';
+import { useLocation } from 'react-router-dom';
 
 const Properties = () => {
   const { properties, isLoading, error } = useProperties();
-  const [filters, setFilters] = useState<any>(null);
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const initialQuery = params.get('q') || '';
+  const [filters, setFilters] = useState<any>(
+    initialQuery ? { location: initialQuery } : null
+  );
 
   // Função para aplicar os filtros
   const handleSearch = (newFilters: any) => {
@@ -26,12 +32,14 @@ const Properties = () => {
       if (filters.auctionType && filters.auctionType !== '' && property.auctionType !== filters.auctionType) return false;
       // Nível de risco
       if (filters.riskLevel && filters.riskLevel !== '' && property.riskLevel !== filters.riskLevel) return false;
-      // Localização (cidade ou bairro)
+      // Localização (cidade, bairro, tipo de imóvel ou estado)
       if (filters.location && filters.location !== '') {
         const locationLower = filters.location.toLowerCase();
         const cityMatch = property.city.toLowerCase().includes(locationLower);
         const addressMatch = property.address.toLowerCase().includes(locationLower);
-        if (!cityMatch && !addressMatch) return false;
+        const typeMatch = property.type.toLowerCase().includes(locationLower);
+        const stateMatch = property.state.toLowerCase().includes(locationLower);
+        if (!cityMatch && !addressMatch && !typeMatch && !stateMatch) return false;
       }
       // Estado (UF)
       if (filters.state && filters.state !== '' && property.state !== filters.state) return false;

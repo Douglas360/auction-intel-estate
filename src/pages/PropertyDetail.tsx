@@ -9,13 +9,38 @@ import { Calendar, MapPin, Home, DollarSign, Clock, Gavel, AlertTriangle, Heart,
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from "@/components/ui/use-toast";
 import { useProperties } from '@/hooks/useProperties';
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseAny = createClient(
+  'https://pkvrxhczpvmopgzgcqmk.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBrdnJ4aGN6cHZtb3BnemdjcW1rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY4MDE1NzEsImV4cCI6MjA2MjM3NzU3MX0.8Cp2c2UXtRv7meUl8KNx4ihgdEhUTUd_dLeYDnUQn9o'
+);
 
 const PropertyDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { properties, isLoading, error } = useProperties();
+  const [mapsApiKey, setMapsApiKey] = React.useState<string | null>(null);
+  const [isLoadingMapsKey, setIsLoadingMapsKey] = React.useState(true);
+  const [mapsKeyError, setMapsKeyError] = React.useState<string | null>(null);
 
   const property = properties.find((p) => p.id === id);
+
+  React.useEffect(() => {
+    const fetchMapsKey = async () => {
+      setIsLoadingMapsKey(true);
+      const { data, error } = await supabaseAny.from('system_settings').select('google_maps_api_key').single();
+      if (!error && data && data.google_maps_api_key) {
+        setMapsApiKey(data.google_maps_api_key);
+        setMapsKeyError(null);
+      } else {
+        setMapsApiKey(null);
+        setMapsKeyError('Não foi possível carregar a chave da API do Google Maps.');
+      }
+      setIsLoadingMapsKey(false);
+    };
+    fetchMapsKey();
+  }, []);
 
   if (isLoading) {
     return (
@@ -65,6 +90,26 @@ const PropertyDetail = () => {
     const date = new Date(dateStr);
     if (isNaN(date.getTime())) return '-';
     return date.toLocaleDateString('pt-BR');
+  };
+
+  const handleShare = () => {
+    const shareUrl = window.location.href;
+    const shareData = {
+      title: property.title,
+      text: `Confira este imóvel: ${property.title}`,
+      url: shareUrl,
+    };
+
+    if (navigator.share) {
+      navigator.share(shareData).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(shareUrl);
+      toast({
+        title: "Link copiado!",
+        description: "O link do imóvel foi copiado para a área de transferência.",
+        variant: "default",
+      });
+    }
   };
 
   return (
@@ -119,7 +164,7 @@ const PropertyDetail = () => {
                 <Button variant="outline" className="border-auction-primary text-auction-primary hover:bg-auction-primary hover:text-white flex items-center gap-2">
                   <Heart className="w-4 h-4" /> Adicionar aos favoritos
                 </Button>
-                <Button variant="outline" className="flex items-center gap-2">
+                <Button variant="outline" className="flex items-center gap-2" onClick={handleShare}>
                   <Share2 className="w-4 h-4" /> Compartilhar
                 </Button>
               </div>
@@ -242,19 +287,25 @@ const PropertyDetail = () => {
                 <p className="text-gray-600 mb-4">
                   {property.address}, {property.city} - {property.state}
                 </p>
-                <div className="bg-white rounded-lg h-[400px] mb-4 overflow-hidden">
-                  <iframe
-                    width="100%"
-                    height="100%"
-                    style={{ border: 0 }}
-                    loading="lazy"
-                    allowFullScreen
-                    referrerPolicy="no-referrer-when-downgrade"
-                    src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBLo0Vh9TmVkFUSFDRUwgEf6LFcR17tKFw&q=${encodeURIComponent(
-                      `${property.address}, ${property.city}, ${property.state}`
-                    )}`}
-                  ></iframe>
-                </div>
+                {isLoadingMapsKey ? (
+                  <div className="bg-white rounded-lg h-[400px] mb-4 flex items-center justify-center">Carregando mapa...</div>
+                ) : mapsKeyError ? (
+                  <div className="bg-white rounded-lg h-[400px] mb-4 flex items-center justify-center text-red-600">{mapsKeyError}</div>
+                ) : (
+                  <div className="bg-white rounded-lg h-[400px] mb-4 overflow-hidden">
+                    <iframe
+                      width="100%"
+                      height="100%"
+                      style={{ border: 0 }}
+                      loading="lazy"
+                      allowFullScreen
+                      referrerPolicy="no-referrer-when-downgrade"
+                      src={`https://www.google.com/maps/embed/v1/place?key=${mapsApiKey}&q=${encodeURIComponent(
+                        `${property.address}, ${property.city}, ${property.state}`
+                      )}`}
+                    ></iframe>
+                  </div>
+                )}
                 <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mt-4">
                   <h4 className="font-semibold mb-2">Sobre a região</h4>
                   <p className="text-sm text-gray-600">
