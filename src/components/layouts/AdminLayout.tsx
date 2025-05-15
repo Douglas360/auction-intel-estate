@@ -2,7 +2,7 @@
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { User, LogOut } from 'lucide-react';
+import { User, LogOut, Home, Users, CreditCard, Database, ShieldCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -83,17 +83,25 @@ const AdminLayout = () => {
         <div className="bg-gray-800">
           <div className="container mx-auto px-4">
             <nav className="flex overflow-x-auto">
-              <a href="/admin" className="px-4 py-3 text-sm hover:bg-gray-700 transition-colors whitespace-nowrap">
+              <a href="/admin" className="px-4 py-3 text-sm hover:bg-gray-700 transition-colors whitespace-nowrap flex items-center">
+                <Home className="h-4 w-4 mr-2" />
                 Dashboard
               </a>
-              <a href="/admin/plans" className="px-4 py-3 text-sm hover:bg-gray-700 transition-colors whitespace-nowrap">
+              <a href="/admin/plans" className="px-4 py-3 text-sm hover:bg-gray-700 transition-colors whitespace-nowrap flex items-center">
+                <CreditCard className="h-4 w-4 mr-2" />
                 Planos de Assinatura
               </a>
-              <a href="/admin/users" className="px-4 py-3 text-sm hover:bg-gray-700 transition-colors whitespace-nowrap">
+              <a href="/admin/users" className="px-4 py-3 text-sm hover:bg-gray-700 transition-colors whitespace-nowrap flex items-center">
+                <Users className="h-4 w-4 mr-2" />
                 Usuários
               </a>
-              <a href="/admin/admins" className="px-4 py-3 text-sm hover:bg-gray-700 transition-colors whitespace-nowrap">
+              <a href="/admin/admins" className="px-4 py-3 text-sm hover:bg-gray-700 transition-colors whitespace-nowrap flex items-center">
+                <ShieldCheck className="h-4 w-4 mr-2" />
                 Administradores
+              </a>
+              <a href="/admin/import" className="px-4 py-3 text-sm hover:bg-gray-700 transition-colors whitespace-nowrap flex items-center">
+                <Database className="h-4 w-4 mr-2" />
+                Importar Imóveis
               </a>
             </nav>
           </div>

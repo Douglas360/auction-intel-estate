@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -19,6 +20,7 @@ import AdminLayout from "./components/layouts/AdminLayout";
 import Login from "./pages/Login";
 import AllUsers from "./pages/admin/AllUsers";
 import Properties from "./pages/Properties";
+import ImportProperties from "./pages/admin/ImportProperties";
 
 const queryClient = new QueryClient();
 
@@ -51,6 +53,7 @@ const App = () => (
             <Route path="plans" element={<Admin />} />
             <Route path="admins" element={<AdminUsers />} />
             <Route path="users" element={<AllUsers />} />
+            <Route path="import" element={<ImportProperties />} />
           </Route>
           
           {/* Catch-all route */}
