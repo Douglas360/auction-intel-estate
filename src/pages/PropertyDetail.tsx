@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -6,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Navbar from '@/components/Navbar';
 import RiskAnalyzer from '@/components/RiskAnalyzer';
 import ProfitSimulator from '@/components/ProfitSimulator';
-import { Calendar, MapPin, Home, DollarSign, Clock, Gavel, AlertTriangle, Heart, Share2, FileText, FilePdf } from 'lucide-react';
+import { Calendar, MapPin, Home, DollarSign, Clock, Gavel, AlertTriangle, Heart, Share2, FileText, File } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from "@/components/ui/use-toast";
 import { useProperties } from '@/hooks/useProperties';
@@ -235,7 +234,7 @@ const PropertyDetail = () => {
                         onClick={() => openDocument(property.edital_pdf_url)}
                       >
                         <div className="border border-teal-700 rounded p-4 mb-2">
-                          <FilePdf className="w-8 h-8 text-teal-700" />
+                          <File className="w-8 h-8 text-teal-700" />
                         </div>
                         <span className="text-teal-700">Edital</span>
                       </div>
