@@ -28,13 +28,8 @@ const Index = () => {
     return subscriptionStatus?.plan?.id === planId;
   };
 
-  const handleSubscribe = async (planId: string) => {
-    setCheckoutLoadingPlanId(planId);
-    try {
-      await subscribeToPlan(planId, isYearly ? 'year' : 'month');
-    } finally {
-      setCheckoutLoadingPlanId(null);
-    }
+  const handleSubscribe = (planId: string) => {
+    navigate(`/subscribe/${planId}`);
   };
 
   const handleSearch = (e: React.FormEvent) => {
@@ -113,7 +108,7 @@ const Index = () => {
                     key={plan.id}
                     plan={plan}
                     isCurrentPlan={isCurrentPlan(plan.id)}
-                    isLoading={checkoutLoadingPlanId === plan.id}
+                    isLoading={false}
                     billingInterval={isYearly ? 'year' : 'month'}
                     onSubscribe={handleSubscribe}
                   />
@@ -195,6 +190,7 @@ const Index = () => {
                   <PropertyCard 
                     key={property.id}
                     {...property}
+                    clickable={true}
                   />
                 ))
               ) : (

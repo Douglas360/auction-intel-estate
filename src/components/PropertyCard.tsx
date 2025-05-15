@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Calendar, Gavel, AlertTriangle, Heart } from "lucide-react";
+import { MapPin, Calendar, Heart } from "lucide-react";
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 

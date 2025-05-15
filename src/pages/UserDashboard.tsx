@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import UserDashboardHeader from '@/components/UserDashboardHeader';
 import UserFavorites from '@/components/UserFavorites';
@@ -11,92 +10,107 @@ import SearchFilters from '@/components/SearchFilters';
 import PropertyCard from '@/components/PropertyCard';
 import RiskAnalyzer from '@/components/RiskAnalyzer';
 import ProfitSimulator from '@/components/ProfitSimulator';
-
-// Mock data for the user dashboard
-const mockUser = {
-  id: '1',
-  name: 'João Silva',
-  email: 'joao.silva@example.com',
-  plan: 'Gratuito',
-  favoriteCount: 5,
-  alertCount: 3,
-  lastAnalysis: '2025-05-07',
-  matchingAuctions: 12
-};
-
-// Mock data for property listings
-const mockProperties = [
-  {
-    id: '1',
-    title: 'Apartamento 3 dormitórios no Morumbi',
-    type: 'Apartamento',
-    address: 'Rua Engenheiro João de Ulhôa Cintra, 214, Apto 132',
-    city: 'São Paulo',
-    state: 'SP',
-    auctionPrice: 450000,
-    marketPrice: 650000,
-    discount: 30,
-    auctionDate: '2025-06-15',
-    auctionType: 'Judicial',
-    riskLevel: 'low' as 'low',
-    imageUrl: '/placeholder.svg'
-  },
-  {
-    id: '2',
-    title: 'Casa em condomínio em Alphaville',
-    type: 'Casa',
-    address: 'Alameda Grajau, 325, Residencial 5',
-    city: 'Barueri',
-    state: 'SP',
-    auctionPrice: 1200000,
-    marketPrice: 1850000,
-    discount: 35,
-    auctionDate: '2025-06-22',
-    auctionType: 'Extrajudicial',
-    riskLevel: 'medium' as 'medium',
-    imageUrl: '/placeholder.svg'
-  },
-  {
-    id: '3',
-    title: 'Terreno comercial na Marginal Tietê',
-    type: 'Terreno',
-    address: 'Avenida Marginal Tietê, 2500',
-    city: 'São Paulo',
-    state: 'SP',
-    auctionPrice: 900000,
-    marketPrice: 1300000,
-    discount: 31,
-    auctionDate: '2025-07-05',
-    auctionType: 'Banco',
-    riskLevel: 'low' as 'low',
-    imageUrl: '/placeholder.svg'
-  }
-];
+import { supabase } from '@/integrations/supabase/client';
+import { useSubscription } from '@/hooks/useSubscription';
+import { useProperties } from '@/hooks/useProperties';
 
 const UserDashboard = () => {
   const [activeTab, setActiveTab] = useState("busca");
-  const [properties, setProperties] = useState(mockProperties);
+  const [user, setUser] = useState(null);
+  const { subscriptionStatus } = useSubscription();
+  const { properties, isLoading, error } = useProperties();
+  const [filters, setFilters] = useState<any>(null);
+  const [sortBy, setSortBy] = useState<string>('discount');
+  const itemsPerPage = 12;
+  const [currentPage, setCurrentPage] = useState<number>(1);
 
-  const handleSearch = (filters: any) => {
-    console.log('Search filters:', filters);
-    // In a real app, this would filter the properties based on the filters
-    // For now, we'll just keep the mock properties
-    setProperties(mockProperties);
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user || null);
+    };
+    fetchUser();
+  }, []);
+
+  // Filtros e ordenação (igual ao /properties)
+  const filteredAndSortedProperties = React.useMemo(() => {
+    let result = properties;
+    if (filters) {
+      result = result.filter(property => {
+        if (filters.discount && property.discount < filters.discount) return false;
+        if (filters.propertyType && filters.propertyType !== '' && property.type !== filters.propertyType) return false;
+        if (filters.auctionType && filters.auctionType !== '' && property.auctionType !== filters.auctionType) return false;
+        if (filters.riskLevel && filters.riskLevel !== '' && property.riskLevel !== filters.riskLevel) return false;
+        if (filters.location && filters.location !== '') {
+          const locationLower = filters.location.toLowerCase();
+          const cityMatch = property.city.toLowerCase().includes(locationLower);
+          const addressMatch = property.address.toLowerCase().includes(locationLower);
+          const typeMatch = property.type.toLowerCase().includes(locationLower);
+          const stateMatch = property.state.toLowerCase().includes(locationLower);
+          if (!cityMatch && !addressMatch && !typeMatch && !stateMatch) return false;
+        }
+        if (filters.state && filters.state !== '' && property.state !== filters.state) return false;
+        if (filters.minPrice && property.auctionPrice < filters.minPrice) return false;
+        if (filters.maxPrice && property.auctionPrice > filters.maxPrice) return false;
+        return true;
+      });
+    }
+    if (sortBy) {
+      result = [...result].sort((a, b) => {
+        switch (sortBy) {
+          case 'discount':
+            return b.discount - a.discount;
+          case 'date':
+            return new Date(a.auctionDate).getTime() - new Date(b.auctionDate).getTime();
+          case 'price':
+            return a.auctionPrice - b.auctionPrice;
+          default:
+            return 0;
+        }
+      });
+    }
+    return result;
+  }, [properties, filters, sortBy]);
+
+  const paginatedProperties = React.useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredAndSortedProperties.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredAndSortedProperties, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(filteredAndSortedProperties.length / itemsPerPage);
+
+  const handleSearch = (newFilters: any) => {
+    setFilters(newFilters);
+    setCurrentPage(1);
+  };
+
+  const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSortBy(e.target.value);
+  };
+
+  if (!user) {
+    return <div className="min-h-screen flex items-center justify-center">Carregando usuário...</div>;
+  }
+
+  const realUser = {
+    id: user.id,
+    name: user.user_metadata?.name || user.email,
+    email: user.email,
+    plan: subscriptionStatus?.plan?.title || 'Gratuito',
+    favoriteCount: 0,
+    alertCount: 0,
+    lastAnalysis: '',
+    matchingAuctions: 0
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
       <div className="container mx-auto max-w-7xl px-4 pt-20 pb-10">
-        {/* Dashboard Header with Welcome and Summary */}
-        <UserDashboardHeader user={mockUser} />
-        
-        {/* User Subscription */}
+        <UserDashboardHeader user={realUser} />
         <div className="mt-6">
           <UserSubscription />
         </div>
-        
-        {/* Main Dashboard Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
           <TabsList className="grid grid-cols-5 mb-6">
             <TabsTrigger value="busca">Busca de Imóveis</TabsTrigger>
@@ -105,74 +119,81 @@ const UserDashboard = () => {
             <TabsTrigger value="favoritos">Meus Favoritos</TabsTrigger>
             <TabsTrigger value="alertas">Meus Alertas</TabsTrigger>
           </TabsList>
-          
-          {/* Busca de Imóveis Tab */}
           <TabsContent value="busca" className="mt-0">
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-              {/* Filters sidebar */}
               <div className="lg:col-span-1">
                 <SearchFilters onSearch={handleSearch} />
               </div>
-              
-              {/* Property listings */}
               <div className="lg:col-span-3">
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-xl font-semibold">
-                    {properties.length} imóveis encontrados
+                    {filteredAndSortedProperties.length} imóveis encontrados
                   </h2>
                   <div className="flex items-center space-x-2">
                     <span className="text-sm text-gray-500">Ordenar por:</span>
-                    <select className="text-sm border rounded p-1">
+                    <select 
+                      className="text-sm border rounded p-1"
+                      value={sortBy}
+                      onChange={handleSortChange}
+                    >
                       <option value="discount">Maior desconto</option>
                       <option value="date">Data do leilão</option>
                       <option value="price">Menor preço</option>
                     </select>
                   </div>
                 </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
-                  {properties.map((property) => (
-                    <PropertyCard
-                      key={property.id}
-                      {...property}
-                    />
-                  ))}
-                </div>
+                {isLoading ? (
+                  <div className="text-center py-10">Carregando imóveis...</div>
+                ) : error ? (
+                  <div className="text-center py-10 text-red-500">{error}</div>
+                ) : paginatedProperties.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {paginatedProperties.map((property) => (
+                      <PropertyCard key={property.id} {...property} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-10">Nenhum imóvel encontrado.</div>
+                )}
+                {/* Paginação simples */}
+                {totalPages > 1 && (
+                  <div className="flex justify-center mt-8 space-x-2">
+                    {Array.from({ length: totalPages }, (_, i) => (
+                      <button
+                        key={i + 1}
+                        className={`px-3 py-1 rounded ${currentPage === i + 1 ? 'bg-auction-primary text-white' : 'bg-gray-200 text-gray-700'}`}
+                        onClick={() => setCurrentPage(i + 1)}
+                      >
+                        {i + 1}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </TabsContent>
-          
-          {/* Simulador Tab */}
           <TabsContent value="simulador" className="mt-0">
             <div className="max-w-3xl mx-auto">
               <ProfitSimulator />
             </div>
           </TabsContent>
-          
-          {/* Análise Jurídica Tab */}
           <TabsContent value="analise" className="mt-0">
             <div className="max-w-3xl mx-auto">
               <RiskAnalyzer />
             </div>
           </TabsContent>
-          
-          {/* Favoritos Tab */}
           <TabsContent value="favoritos" className="mt-0">
             <UserFavorites 
-              favorites={mockProperties.slice(0, 2)}
+              favorites={properties.slice(0, 2)}
             />
           </TabsContent>
-          
-          {/* Alertas Tab */}
           <TabsContent value="alertas" className="mt-0">
             <UserAlerts />
           </TabsContent>
         </Tabs>
-        
-        {/* Profile section */}
         <div className="mt-8">
           <h2 className="text-2xl font-semibold mb-4">Meu Perfil</h2>
-          <UserProfile user={mockUser} />
+          <UserProfile user={realUser} />
         </div>
       </div>
     </div>

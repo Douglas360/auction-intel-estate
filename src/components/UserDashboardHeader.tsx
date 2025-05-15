@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Home, User, Bell, FileText } from 'lucide-react';
@@ -15,7 +14,9 @@ interface UserDashboardHeaderProps {
 
 const UserDashboardHeader = ({ user }: UserDashboardHeaderProps) => {
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('pt-BR');
+    if (!dateString) return "Nenhum parecer ainda";
+    const date = new Date(dateString);
+    return isNaN(date.getTime()) ? "Nenhum parecer ainda" : date.toLocaleDateString('pt-BR');
   };
 
   return (
