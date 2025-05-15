@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import PropertyCard from '@/components/PropertyCard';
@@ -207,7 +208,11 @@ const Properties = () => {
                         {/* Previous button */}
                         <PaginationItem>
                           <PaginationPrevious 
-                            onClick={() => currentPage > 1 && handlePageChange(currentPage - 1)}
+                            href="#" 
+                            onClick={(e) => {
+                              e.preventDefault();
+                              if (currentPage > 1) handlePageChange(currentPage - 1);
+                            }}
                             className={currentPage <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
                           />
                         </PaginationItem>
@@ -237,7 +242,11 @@ const Properties = () => {
                                 )}
                                 <PaginationItem>
                                   <PaginationLink
-                                    onClick={() => handlePageChange(page)} 
+                                    href="#"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      handlePageChange(page);
+                                    }}
                                     isActive={page === currentPage}
                                   >
                                     {page}
@@ -251,7 +260,11 @@ const Properties = () => {
                         {/* Next button */}
                         <PaginationItem>
                           <PaginationNext 
-                            onClick={() => currentPage < totalPages && handlePageChange(currentPage + 1)}
+                            href="#"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              if (currentPage < totalPages) handlePageChange(currentPage + 1);
+                            }}
                             className={currentPage >= totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
                           />
                         </PaginationItem>
