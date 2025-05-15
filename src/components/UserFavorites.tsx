@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,9 +23,10 @@ interface Property {
 
 interface UserFavoritesProps {
   favorites: Property[];
+  onRemoveFavorite?: (propertyId: string) => void;
 }
 
-const UserFavorites = ({ favorites }: UserFavoritesProps) => {
+const UserFavorites = ({ favorites, onRemoveFavorite }: UserFavoritesProps) => {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -40,7 +40,7 @@ const UserFavorites = ({ favorites }: UserFavoritesProps) => {
         <CardContent>
           <p className="text-gray-500 mb-4">Você ainda não tem imóveis favoritos.</p>
           <Button asChild>
-            <Link to="/search">Buscar Imóveis</Link>
+            <Link to="/properties?sort=discount">Buscar Imóveis</Link>
           </Button>
         </CardContent>
       </Card>
@@ -108,7 +108,7 @@ const UserFavorites = ({ favorites }: UserFavoritesProps) => {
                     <FileText className="h-4 w-4 mr-1" />
                     Análise
                   </Button>
-                  <Button size="sm" variant="outline" className="text-red-500 hover:bg-red-50">
+                  <Button size="sm" variant="outline" className="text-red-500 hover:bg-red-50" onClick={() => onRemoveFavorite && onRemoveFavorite(property.id)}>
                     <Trash className="h-4 w-4" />
                   </Button>
                 </div>

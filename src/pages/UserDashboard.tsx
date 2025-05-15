@@ -25,18 +25,46 @@ const UserDashboard = () => {
   const itemsPerPage = 12;
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [favorites, setFavorites] = useState<string[]>([]);
+  const [favoriteProperties, setFavoriteProperties] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user || null);
       if (session?.user) {
-        // Buscar favoritos do usuário
+        // Buscar favoritos do usuário (apenas os ids)
         const { data: favs } = await supabase
           .from('favorites')
           .select('property_id')
           .eq('user_id', session.user.id);
         setFavorites(favs ? favs.map(f => f.property_id) : []);
+        // Buscar os imóveis favoritos completos
+        if (favs && favs.length > 0) {
+          const propertyIds = favs.map(f => f.property_id);
+          const { data: propertiesData } = await supabase
+            .from('properties')
+            .select('*')
+            .in('id', propertyIds);
+          // Mapear para o formato esperado pelo componente UserFavorites
+          const mappedFavorites = (propertiesData || []).map((p) => ({
+            id: p.id,
+            title: p.title,
+            type: p.type,
+            address: p.address,
+            city: p.city,
+            state: p.state,
+            auctionPrice: p.auction_price,
+            marketPrice: p.market_price,
+            discount: p.discount,
+            auctionDate: p.auction_date,
+            auctionType: p.auction_type,
+            riskLevel: (p as any).risk_level || 'medium',
+            imageUrl: Array.isArray(p.images) && p.images.length > 0 ? p.images[0] : '',
+          }));
+          setFavoriteProperties(mappedFavorites);
+        } else {
+          setFavoriteProperties([]);
+        }
       }
     };
     fetchUser();
@@ -115,6 +143,17 @@ const UserDashboard = () => {
         .insert({ user_id: user.id, property_id: propertyId });
       setFavorites([...favorites, propertyId]);
     }
+  };
+
+  const handleRemoveFavorite = async (propertyId: string) => {
+    if (!user) return;
+    await supabase
+      .from('favorites')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('property_id', propertyId);
+    setFavorites(favorites.filter(id => id !== propertyId));
+    setFavoriteProperties(favoriteProperties.filter(p => p.id !== propertyId));
   };
 
   if (!user) {
@@ -218,7 +257,8 @@ const UserDashboard = () => {
           </TabsContent>
           <TabsContent value="favoritos" className="mt-0">
             <UserFavorites 
-              favorites={properties.slice(0, 2)}
+              favorites={favoriteProperties}
+              onRemoveFavorite={handleRemoveFavorite}
             />
           </TabsContent>
           <TabsContent value="alertas" className="mt-0">
