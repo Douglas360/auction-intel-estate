@@ -81,6 +81,7 @@ export type Database = {
           created_at: string | null
           description: string | null
           discount: number | null
+          edital_pdf_url: string | null
           id: string
           images: string[] | null
           market_price: number
@@ -106,6 +107,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           discount?: number | null
+          edital_pdf_url?: string | null
           id?: string
           images?: string[] | null
           market_price: number
@@ -131,6 +133,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           discount?: number | null
+          edital_pdf_url?: string | null
           id?: string
           images?: string[] | null
           market_price?: number

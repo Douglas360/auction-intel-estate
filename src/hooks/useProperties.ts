@@ -38,6 +38,8 @@ export interface Property {
     minimumBid1: number;
     minimumBid2: number;
   };
+  matricula_pdf_url?: string;
+  edital_pdf_url?: string;
 }
 
 export const useProperties = () => {
@@ -160,6 +162,8 @@ export const useProperties = () => {
           imageUrl,
           description: property.description,
           details,
+          matricula_pdf_url: property.matricula_pdf_url,
+          edital_pdf_url: property.edital_pdf_url,
           auctionDetails: {
             auctionHouse: property.auctioneer || '',
             auctionSite: property.auctioneer_site || '',

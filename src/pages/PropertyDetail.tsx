@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -5,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Navbar from '@/components/Navbar';
 import RiskAnalyzer from '@/components/RiskAnalyzer';
 import ProfitSimulator from '@/components/ProfitSimulator';
-import { Calendar, MapPin, Home, DollarSign, Clock, Gavel, AlertTriangle, Heart, Share2 } from 'lucide-react';
+import { Calendar, MapPin, Home, DollarSign, Clock, Gavel, AlertTriangle, Heart, Share2, FileText, FilePdf } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from "@/components/ui/use-toast";
 import { useProperties } from '@/hooks/useProperties';
@@ -112,6 +113,19 @@ const PropertyDetail = () => {
     }
   };
 
+  // Function to open documents in new tab
+  const openDocument = (url: string | undefined) => {
+    if (url) {
+      window.open(url, '_blank');
+    } else {
+      toast({
+        title: "Documento não disponível",
+        description: "Este documento não está disponível no momento.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -199,6 +213,36 @@ const PropertyDetail = () => {
                     </div>
                   </div>
                 </div>
+                {/* Documentos disponíveis */}
+                <div>
+                  <h2 className="text-xl font-semibold mb-4">Documentos</h2>
+                  <div className="flex gap-6">
+                    {property.matricula_pdf_url && (
+                      <div 
+                        className="flex flex-col items-center cursor-pointer border border-gray-200 p-4 rounded-md hover:bg-gray-50 transition-colors"
+                        onClick={() => openDocument(property.matricula_pdf_url)}
+                      >
+                        <div className="border border-teal-700 rounded p-4 mb-2">
+                          <FileText className="w-8 h-8 text-teal-700" />
+                        </div>
+                        <span className="text-teal-700">Matrícula</span>
+                      </div>
+                    )}
+                    
+                    {property.edital_pdf_url && (
+                      <div 
+                        className="flex flex-col items-center cursor-pointer border border-gray-200 p-4 rounded-md hover:bg-gray-50 transition-colors"
+                        onClick={() => openDocument(property.edital_pdf_url)}
+                      >
+                        <div className="border border-teal-700 rounded p-4 mb-2">
+                          <FilePdf className="w-8 h-8 text-teal-700" />
+                        </div>
+                        <span className="text-teal-700">Edital</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
                 {property.details && (
                   <div>
                     <h2 className="text-xl font-semibold mb-2">Detalhes Técnicos</h2>
@@ -328,4 +372,3 @@ const PropertyDetail = () => {
 };
 
 export default PropertyDetail;
-
