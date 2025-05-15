@@ -25,7 +25,7 @@ export default function PricingToggle({ isYearly, onToggle }: PricingToggleProps
           Anual
         </Label>
         <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200">
-          Economize até 20%
+          Economize até 67%
         </Badge>
       </div>
     </div>
