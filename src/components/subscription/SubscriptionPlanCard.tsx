@@ -38,6 +38,9 @@ const SubscriptionPlanCard: React.FC<SubscriptionPlanCardProps> = ({
     }).format(price);
   };
 
+  // Define formatCurrency to use the same formatter
+  const formatCurrency = formatPrice;
+
   // Parse benefits from JSON string or array
   const parseBenefits = (): string[] => {
     if (!plan.benefits) return [];
