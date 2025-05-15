@@ -10,6 +10,9 @@ import SubscriptionPlanCard from "@/components/subscription/SubscriptionPlanCard
 import PricingToggle from "@/components/subscription/PricingToggle";
 import PropertyCard from "@/components/PropertyCard";
 import { useProperties } from '@/hooks/useProperties';
+import { supabase } from '@/integrations/supabase/client';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertTriangle } from 'lucide-react';
 
 const Index = () => {
   const [isYearly, setIsYearly] = useState(false);
@@ -23,6 +26,9 @@ const Index = () => {
     subscribeToPlan 
   } = useSubscription();
   const { featuredProperties, isLoading: isLoadingProperties } = useProperties();
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const [user, setUser] = useState<any>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   const isCurrentPlan = (planId: string) => {
     return subscriptionStatus?.plan?.id === planId;
@@ -35,6 +41,41 @@ const Index = () => {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     navigate(`/properties?q=${encodeURIComponent(searchQuery)}`);
+  };
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user || null);
+      if (session?.user) {
+        const { data: favs } = await supabase
+          .from('favorites')
+          .select('property_id')
+          .eq('user_id', session.user.id);
+        setFavorites(favs ? favs.map(f => f.property_id) : []);
+      }
+    };
+    fetchUser();
+  }, []);
+
+  const handleToggleFavorite = async (propertyId: string) => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+    if (favorites.includes(propertyId)) {
+      await supabase
+        .from('favorites')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('property_id', propertyId);
+      setFavorites(favorites.filter(id => id !== propertyId));
+    } else {
+      await supabase
+        .from('favorites')
+        .insert({ user_id: user.id, property_id: propertyId });
+      setFavorites([...favorites, propertyId]);
+    }
   };
 
   return (
@@ -187,10 +228,12 @@ const Index = () => {
                 <div className="col-span-3 text-center py-10">Carregando imóveis...</div>
               ) : featuredProperties.length > 0 ? (
                 featuredProperties.map(property => (
-                  <PropertyCard 
+                  <PropertyCard
                     key={property.id}
                     {...property}
                     clickable={true}
+                    isFavorite={favorites.includes(property.id)}
+                    onToggleFavorite={handleToggleFavorite}
                   />
                 ))
               ) : (
@@ -206,6 +249,27 @@ const Index = () => {
           </div>
         </div>
       </div>
+      <Dialog open={showAuthModal} onOpenChange={setShowAuthModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center text-2xl font-light mb-2">EFETUE LOGIN OU CADASTRE-SE</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center justify-center py-2">
+            <AlertTriangle className="w-20 h-20 text-orange-400 mb-4" />
+            <p className="text-center text-base mb-6 text-gray-700">
+              Cadastre-se ou faça login para salvar buscas, selecionar ou descartar imóveis e acessá-los de forma fácil na página em minha conta.
+            </p>
+            <div className="flex gap-4">
+              <Button variant="outline" onClick={() => { setShowAuthModal(false); window.location.href = '/login'; }}>
+                Login
+              </Button>
+              <Button onClick={() => { setShowAuthModal(false); window.location.href = '/register'; }}>
+                Cadastre-se
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

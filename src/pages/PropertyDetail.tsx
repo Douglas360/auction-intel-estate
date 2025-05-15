@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +18,8 @@ import {
   BreadcrumbPage, 
   BreadcrumbSeparator 
 } from "@/components/ui/breadcrumb";
+import { supabase } from '@/integrations/supabase/client';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 
 const supabaseAny = createClient(
   'https://pkvrxhczpvmopgzgcqmk.supabase.co',
@@ -33,6 +34,9 @@ const PropertyDetail = () => {
   const [mapsApiKey, setMapsApiKey] = React.useState<string | null>(null);
   const [isLoadingMapsKey, setIsLoadingMapsKey] = React.useState(true);
   const [mapsKeyError, setMapsKeyError] = React.useState<string | null>(null);
+  const [isFavorite, setIsFavorite] = React.useState(false);
+  const [user, setUser] = React.useState<any>(null);
+  const [showAuthModal, setShowAuthModal] = React.useState(false);
 
   const property = properties.find((p) => p.id === id);
   
@@ -65,6 +69,42 @@ const PropertyDetail = () => {
     };
     fetchMapsKey();
   }, []);
+
+  React.useEffect(() => {
+    const fetchUserAndFavorite = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user || null);
+      if (session?.user && property) {
+        const { data: favs } = await supabase
+          .from('favorites')
+          .select('id')
+          .eq('user_id', session.user.id)
+          .eq('property_id', property.id);
+        setIsFavorite(favs && favs.length > 0);
+      }
+    };
+    fetchUserAndFavorite();
+  }, [property]);
+
+  const handleToggleFavorite = async () => {
+    if (!user || !property) {
+      setShowAuthModal(true);
+      return;
+    }
+    if (isFavorite) {
+      await supabase
+        .from('favorites')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('property_id', property.id);
+      setIsFavorite(false);
+    } else {
+      await supabase
+        .from('favorites')
+        .insert({ user_id: user.id, property_id: property.id });
+      setIsFavorite(true);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -219,16 +259,30 @@ const PropertyDetail = () => {
                 </div>
               </div>
               {/* Line 4: Buttons */}
-              <div className="flex flex-wrap gap-2 mt-4">
+              <div className="flex flex-wrap gap-2 mt-4 items-center">
                 <Button className="bg-auction-primary hover:bg-auction-secondary flex items-center gap-2">
                   <Gavel className="w-4 h-4" /> Quero arrematar
                 </Button>
-                <Button variant="outline" className="border-auction-primary text-auction-primary hover:bg-auction-primary hover:text-white flex items-center gap-2">
-                  <Heart className="w-4 h-4" /> Adicionar aos favoritos
-                </Button>
+                
                 <Button variant="outline" className="flex items-center gap-2" onClick={handleShare}>
                   <Share2 className="w-4 h-4" /> Compartilhar
                 </Button>
+                {/* Ícone de favorito entre os botões */}
+                <button
+                  className={`rounded-full p-2 bg-white/80 hover:bg-white shadow transition-all ${isFavorite ? 'text-red-600' : 'text-gray-400'}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    handleToggleFavorite();
+                  }}
+                  aria-label={isFavorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
+                  style={{ lineHeight: 0 }}
+                >
+                  <Heart
+                    className={`w-6 h-6 ${isFavorite ? 'fill-red-600' : 'fill-none'}`}
+                    fill={isFavorite ? 'red' : 'none'}
+                  />
+                </button>
               </div>
             </div>
             {/* Tabs */}
@@ -417,6 +471,28 @@ const PropertyDetail = () => {
           </div>
         </div>
       </div>
+      {/* Modal de login/cadastro */}
+      <Dialog open={showAuthModal} onOpenChange={setShowAuthModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center text-2xl font-light mb-2">EFETUE LOGIN OU CADASTRE-SE</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center justify-center py-2">
+            <AlertTriangle className="w-20 h-20 text-orange-400 mb-4" />
+            <p className="text-center text-base mb-6 text-gray-700">
+              Cadastre-se ou faça login para salvar buscas, selecionar ou descartar imóveis e acessá-los de forma fácil na página em minha conta.
+            </p>
+            <div className="flex gap-4">
+              <Button variant="outline" onClick={() => { setShowAuthModal(false); window.location.href = '/login'; }}>
+                Login
+              </Button>
+              <Button onClick={() => { setShowAuthModal(false); window.location.href = '/register'; }}>
+                Cadastre-se
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

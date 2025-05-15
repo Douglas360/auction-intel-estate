@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Calendar, Heart } from "lucide-react";
+import { MapPin, Calendar, Heart as HeartIcon } from "lucide-react";
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 
@@ -33,6 +33,8 @@ interface PropertyCardProps {
   auctionType?: string;
   riskLevel: 'low' | 'medium' | 'high';
   clickable?: boolean;
+  isFavorite?: boolean;
+  onToggleFavorite?: (propertyId: string) => void;
 }
 
 const PropertyCard: React.FC<PropertyCardProps> = ({
@@ -48,7 +50,9 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
   auctionDate,
   auctionType,
   riskLevel,
-  clickable = false
+  clickable = false,
+  isFavorite = false,
+  onToggleFavorite,
 }) => {
   const location = useLocation();
   
@@ -88,8 +92,22 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
   return (
     <CardWrapper>
       <Card className="overflow-hidden h-full transition-transform duration-300 hover:scale-[1.015] hover:shadow-lg focus-within:scale-[1.015] focus-within:shadow-lg">
-        {/* Property image with discount badge */}
         <div className="relative">
+          {/* Ícone de favorito estilo AirBNB no topo esquerdo */}
+          <button
+            className={`absolute top-2 left-2 z-10 rounded-full p-2 bg-white/80 hover:bg-white shadow transition-all ${isFavorite ? 'text-red-600' : 'text-gray-400'}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              onToggleFavorite && onToggleFavorite(id);
+            }}
+            aria-label={isFavorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
+          >
+            <HeartIcon
+              className={`w-6 h-6 ${isFavorite ? 'fill-red-600' : 'fill-none'}`}
+              fill={isFavorite ? 'red' : 'none'}
+            />
+          </button>
           <img 
             src={imageUrl || "/placeholder.svg"} 
             alt={title} 
@@ -149,12 +167,6 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
             }}
           >
             Ver detalhes
-          </Button>
-          <Button 
-            variant="outline" 
-            className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 flex items-center justify-center gap-2 transition-transform duration-200 hover:scale-105 focus:scale-105 focus:ring-2 focus:ring-blue-200"
-          >
-            <Heart className="w-4 h-4 mr-1" /> Adicionar aos favoritos
           </Button>
         </CardFooter>
       </Card>

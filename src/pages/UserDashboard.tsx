@@ -13,6 +13,7 @@ import ProfitSimulator from '@/components/ProfitSimulator';
 import { supabase } from '@/integrations/supabase/client';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useProperties } from '@/hooks/useProperties';
+import { Tables } from '@/integrations/supabase/types';
 
 const UserDashboard = () => {
   const [activeTab, setActiveTab] = useState("busca");
@@ -23,11 +24,20 @@ const UserDashboard = () => {
   const [sortBy, setSortBy] = useState<string>('discount');
   const itemsPerPage = 12;
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [favorites, setFavorites] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user || null);
+      if (session?.user) {
+        // Buscar favoritos do usuário
+        const { data: favs } = await supabase
+          .from('favorites')
+          .select('property_id')
+          .eq('user_id', session.user.id);
+        setFavorites(favs ? favs.map(f => f.property_id) : []);
+      }
     };
     fetchUser();
   }, []);
@@ -86,6 +96,25 @@ const UserDashboard = () => {
 
   const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSortBy(e.target.value);
+  };
+
+  const handleToggleFavorite = async (propertyId: string) => {
+    if (!user) return;
+    if (favorites.includes(propertyId)) {
+      // Remover dos favoritos
+      await supabase
+        .from('favorites')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('property_id', propertyId);
+      setFavorites(favorites.filter(id => id !== propertyId));
+    } else {
+      // Adicionar aos favoritos
+      await supabase
+        .from('favorites')
+        .insert({ user_id: user.id, property_id: propertyId });
+      setFavorites([...favorites, propertyId]);
+    }
   };
 
   if (!user) {
@@ -149,7 +178,12 @@ const UserDashboard = () => {
                 ) : paginatedProperties.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {paginatedProperties.map((property) => (
-                      <PropertyCard key={property.id} {...property} />
+                      <PropertyCard
+                        key={property.id}
+                        {...property}
+                        isFavorite={favorites.includes(property.id)}
+                        onToggleFavorite={handleToggleFavorite}
+                      />
                     ))}
                   </div>
                 ) : (
