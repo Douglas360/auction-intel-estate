@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -5,11 +6,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Navbar from '@/components/Navbar';
 import RiskAnalyzer from '@/components/RiskAnalyzer';
 import ProfitSimulator from '@/components/ProfitSimulator';
-import { Calendar, MapPin, Home, DollarSign, Clock, Gavel, AlertTriangle, Heart, Share2, FileText, File } from 'lucide-react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { Calendar, MapPin, Home, DollarSign, Clock, Gavel, AlertTriangle, Heart, Share2, FileText, File, ChevronRight } from 'lucide-react';
+import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { toast } from "@/components/ui/use-toast";
 import { useProperties } from '@/hooks/useProperties';
 import { createClient } from '@supabase/supabase-js';
+import { 
+  Breadcrumb, 
+  BreadcrumbItem, 
+  BreadcrumbLink, 
+  BreadcrumbList, 
+  BreadcrumbPage, 
+  BreadcrumbSeparator 
+} from "@/components/ui/breadcrumb";
 
 const supabaseAny = createClient(
   'https://pkvrxhczpvmopgzgcqmk.supabase.co',
@@ -19,12 +28,27 @@ const supabaseAny = createClient(
 const PropertyDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { properties, isLoading, error } = useProperties();
   const [mapsApiKey, setMapsApiKey] = React.useState<string | null>(null);
   const [isLoadingMapsKey, setIsLoadingMapsKey] = React.useState(true);
   const [mapsKeyError, setMapsKeyError] = React.useState<string | null>(null);
 
   const property = properties.find((p) => p.id === id);
+  
+  // Preserve the search parameters when navigating back to the properties list
+  const backToPropertiesLink = React.useMemo(() => {
+    // Get referrer search params if they exist
+    const referrer = new URLSearchParams(location.search).get('from');
+    if (referrer) {
+      try {
+        return decodeURIComponent(referrer);
+      } catch (e) {
+        return '/properties';
+      }
+    }
+    return '/properties';
+  }, [location.search]);
 
   React.useEffect(() => {
     const fetchMapsKey = async () => {
@@ -129,6 +153,31 @@ const PropertyDetail = () => {
     <div className="min-h-screen bg-gray-50">
       <Navbar />
       <div className="container mx-auto max-w-7xl px-4 pt-20 pb-10">
+        {/* Breadcrumb navigation */}
+        <Breadcrumb className="mb-4">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link to="/">
+                  <Home className="w-4 h-4 mr-1 inline" />
+                </Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link to={backToPropertiesLink}>
+                  Imóveis
+                </Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>{property.title}</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+        
         <div className="flex flex-col md:flex-row gap-6">
           {/* Main content */}
           <div className="w-full md:w-2/3">
@@ -140,21 +189,21 @@ const PropertyDetail = () => {
                 className="w-full h-80 object-cover"
               />
             </div>
-            {/* Bloco de informações principais */}
+            {/* Main information block */}
             <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-              {/* Linha 1: Título à esquerda, badge à direita */}
+              {/* Line 1: Title on the left, badge on the right */}
               <div className="flex items-center justify-between gap-2 min-w-0">
                 <h1 className="text-2xl md:text-3xl font-bold min-w-0">{property.title}</h1>
                 <Badge className="discount-badge text-base whitespace-nowrap bg-auction-primary text-white px-4 py-2 rounded-full">
                   {property.discount}% abaixo do mercado
                 </Badge>
               </div>
-              {/* Linha 2: Endereço */}
+              {/* Line 2: Address */}
               <div className="flex items-center text-gray-600 text-sm mt-1">
                 <MapPin className="h-4 w-4 mr-1" />
                 <span>{property.address}, {property.city} - {property.state}</span>
               </div>
-              {/* Linha 3: tipo, valor, data */}
+              {/* Line 3: type, value, date */}
               <div className="flex items-center space-x-4 text-sm mt-2">
                 <div className="flex items-center">
                   <Home className="h-4 w-4 mr-1 text-gray-700" />
@@ -169,7 +218,7 @@ const PropertyDetail = () => {
                   <span>{formatDate(property.auctionDate)}</span>
                 </div>
               </div>
-              {/* Linha 4: Botões */}
+              {/* Line 4: Buttons */}
               <div className="flex flex-wrap gap-2 mt-4">
                 <Button className="bg-auction-primary hover:bg-auction-secondary flex items-center gap-2">
                   <Gavel className="w-4 h-4" /> Quero arrematar
@@ -189,7 +238,7 @@ const PropertyDetail = () => {
                 <TabsTrigger value="auction" className="flex-1">Informações do Leilão</TabsTrigger>
                 <TabsTrigger value="location" className="flex-1">Localização</TabsTrigger>
               </TabsList>
-              {/* Detalhes */}
+              {/* Details tab content */}
               <TabsContent value="details" className="p-6 space-y-6">
                 <div>
                   <h2 className="text-xl font-semibold mb-2">Descrição</h2>
@@ -212,7 +261,7 @@ const PropertyDetail = () => {
                     </div>
                   </div>
                 </div>
-                {/* Documentos disponíveis */}
+                {/* Available documents */}
                 <div>
                   <h2 className="text-xl font-semibold mb-4">Documentos</h2>
                   <div className="flex gap-6">
@@ -258,7 +307,8 @@ const PropertyDetail = () => {
                   </div>
                 )}
               </TabsContent>
-              {/* Informações do Leilão */}
+              
+              {/* Auction information tab content */}
               <TabsContent value="auction" className="p-6 space-y-6">
                 <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
                   <div className="flex">
@@ -324,7 +374,8 @@ const PropertyDetail = () => {
                   Quero participar deste leilão
                 </Button>
               </TabsContent>
-              {/* Localização */}
+              
+              {/* Location tab content */}
               <TabsContent value="location" className="p-6">
                 <h3 className="text-xl font-semibold mb-3">Localização do Imóvel</h3>
                 <p className="text-gray-600 mb-4">
