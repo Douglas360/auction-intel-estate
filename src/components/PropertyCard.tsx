@@ -2,8 +2,9 @@
 import React from 'react';
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, MapPin, Gavel, AlertTriangle } from "lucide-react";
+import { MapPin, Calendar, Gavel, AlertTriangle } from "lucide-react";
 import { Link, useLocation } from 'react-router-dom';
+import { Button } from "@/components/ui/button";
 
 // Define risk level colors
 const riskColors: Record<string, string> = {
@@ -77,14 +78,17 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
     return `/properties/${id}?from=${encodeURIComponent(`${currentPath}${currentSearch}`)}`;
   }, [id, location.pathname, location.search]);
   
+  // Generate property type from title or use a default
+  const propertyType = title?.includes('Apartamento') ? 'Apartamento' : 'Casa';
+  
   // Wrapper component that conditionally renders a Link or a div
   const CardWrapper = clickable 
-    ? ({children}: {children: React.ReactNode}) => <Link to={detailUrl} className="block transition-transform hover:scale-[1.02] duration-300">{children}</Link>
+    ? ({children}: {children: React.ReactNode}) => <Link to={detailUrl} className="block transition-transform duration-300">{children}</Link>
     : ({children}: {children: React.ReactNode}) => <div>{children}</div>;
     
   return (
     <CardWrapper>
-      <Card className="overflow-hidden h-full flex flex-col">
+      <Card className="overflow-hidden h-full">
         {/* Property image with discount badge */}
         <div className="relative">
           <img 
@@ -92,57 +96,64 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
             alt={title} 
             className="w-full h-48 object-cover"
           />
-          <Badge className="absolute top-2 right-2 bg-auction-primary text-white">
+          <Badge className="absolute top-2 left-2 bg-blue-600 text-white">
             {discount}% abaixo do mercado
           </Badge>
           
-          {/* Risk indicator badge */}
-          <div className="absolute bottom-2 right-2 flex items-center gap-1.5 bg-white/90 px-2 py-1 rounded-full text-xs">
-            <div className={`w-2.5 h-2.5 rounded-full ${riskColors[riskLevel]}`}></div>
-            <span>{riskLabels[riskLevel]}</span>
+          <div className="absolute bottom-0 left-0 right-0 bg-blue-600 text-white p-2 text-center">
+            Venda Online Caixa
           </div>
         </div>
         
-        {/* Card content */}
-        <CardContent className="pt-4 flex-grow">
-          <h3 className="font-bold text-lg line-clamp-2 mb-2">{title}</h3>
-          
-          <div className="flex items-start gap-1 text-gray-600 text-sm mb-2">
-            <MapPin className="w-4 h-4 mt-0.5 shrink-0" />
-            <span className="line-clamp-2">{address}, {city} - {state}</span>
+        <CardContent className="p-4">
+          <div className="flex justify-between items-start mb-2">
+            <h3 className="font-bold text-lg line-clamp-1">{title || `${propertyType} Caixa em ${city}`}</h3>
+            <div className="bg-yellow-100 text-xs px-2 py-1 rounded-md">
+              Risco<br />Médio
+            </div>
           </div>
           
-          <div className="flex items-center gap-1 text-gray-600 text-sm mb-3">
-            <Calendar className="w-4 h-4" />
-            <span>Leilão: {formatDate(auctionDate)}</span>
+          <div className="flex items-center gap-2 mb-1 text-sm text-gray-700">
+            <MapPin className="w-4 h-4 shrink-0" />
+            <span className="line-clamp-1">{address}, {city} - {state}</span>
           </div>
           
-          {auctionType && (
-            <div className="flex items-center gap-1 text-gray-600 text-sm mb-3">
-              <Gavel className="w-4 h-4" />
-              <span>{auctionType}</span>
-            </div>
-          )}
+          <div className="flex items-center gap-2 mb-1 text-sm text-gray-700">
+            <Calendar className="w-4 h-4 shrink-0" />
+            <span>Leilão em {formatDate(auctionDate)}</span>
+          </div>
           
-          <div className="mt-4">
-            <div className="flex justify-between text-sm mb-1">
-              <span>Valor de mercado:</span>
-              <span className="font-medium line-through text-gray-500">{formatCurrency(marketPrice)}</span>
+          <div className="mt-4 space-y-1">
+            <div className="flex justify-between text-sm">
+              <span>Valor do Leilão:</span>
+              <span className="font-semibold">{formatCurrency(auctionPrice)}</span>
             </div>
-            <div className="flex justify-between text-lg">
-              <span className="font-bold text-auction-primary">Lance mínimo:</span>
-              <span className="font-bold text-auction-primary">{formatCurrency(auctionPrice)}</span>
+            <div className="flex justify-between text-sm">
+              <span>Valor de Mercado:</span>
+              <span>{formatCurrency(marketPrice)}</span>
             </div>
           </div>
         </CardContent>
         
-        {/* Card footer - more visible call to action */}
-        <CardFooter className="pt-0 pb-4">
-          {clickable && (
-            <div className="text-center w-full mt-2">
-              <span className="text-sm font-medium text-auction-primary">Ver detalhes →</span>
-            </div>
-          )}
+        <CardFooter className="flex flex-col gap-2 p-4 pt-0">
+          <Button 
+            className="w-full bg-blue-600 hover:bg-blue-700"
+            onClick={(e) => {
+              if (clickable) {
+                e.preventDefault();
+                window.location.href = detailUrl;
+              }
+            }}
+          >
+            Ver detalhes
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            className="w-full border-blue-600 text-blue-600 hover:bg-blue-50"
+          >
+            Adicionar aos favoritos
+          </Button>
         </CardFooter>
       </Card>
     </CardWrapper>

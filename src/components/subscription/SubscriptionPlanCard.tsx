@@ -1,3 +1,4 @@
+
 import React from 'react';
 import {
   Card,
@@ -73,7 +74,7 @@ const SubscriptionPlanCard: React.FC<SubscriptionPlanCardProps> = ({
           </p>
           {currentPrice > 0 && plan.price_annual > 0 && billingInterval === 'year' && (
             <p className="text-sm text-muted-foreground">
-              Economia de {formatPrice((plan.price_monthly * 12) - plan.price_annual)} por ano
+              Economia de {formatCurrency((plan.price_monthly * 12) - plan.price_annual)} por ano
             </p>
           )}
         </div>
