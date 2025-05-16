@@ -61,29 +61,14 @@ const AdminUsers = () => {
       
       const isSuperAdmin = currentAdmin?.is_super_admin || false;
       
-      // Get list of admin users with their emails from a profiles table
-      // This is an alternative approach that doesn't need admin API access
-      const { data: admins, error } = await supabase
-        .from('admin_users')
-        .select(`
-          *,
-          profiles:user_id (
-            email
-          )
-        `)
-        .order('created_at', { ascending: false });
+      // Get admin users with their emails
+      const { data: admins, error } = await supabase.functions.invoke('get-admin-users');
       
       if (error) {
         throw error;
       }
       
-      // Format the response to match our expected structure
-      const adminsWithEmail = admins.map((admin) => ({
-        ...admin,
-        user_email: admin.profiles?.email,
-      }));
-      
-      return { admins: adminsWithEmail, currentUserIsSuperAdmin: isSuperAdmin };
+      return { admins: admins || [], currentUserIsSuperAdmin: isSuperAdmin };
     },
   });
 
@@ -180,7 +165,7 @@ const AdminUsers = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {adminUsers?.admins?.map((admin) => (
+                {adminUsers?.admins?.map((admin: AdminUser) => (
                   <tr key={admin.id} className={!admin.is_active ? 'bg-gray-50' : ''}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">{admin.user_email}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">

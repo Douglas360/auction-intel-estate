@@ -10,28 +10,30 @@ const AllUsers = () => {
   const { data, isLoading, error } = useQuery({
     queryKey: ['allUsers'],
     queryFn: async () => {
-      // Instead of using admin.listUsers(), we'll query a view or table that contains user information
-      // This should be set up with appropriate RLS policies to only allow admins to access it
+      // Check if user is a super admin
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('Não autenticado');
+      }
+      
       const { data: adminUser } = await supabase
         .from('admin_users')
         .select('is_super_admin')
-        .eq('user_id', (await supabase.auth.getSession()).data.session?.user.id || '')
+        .eq('user_id', session.user.id)
         .single();
         
       if (!adminUser?.is_super_admin) {
         throw new Error('Permissão negada: Apenas super administradores podem visualizar todos os usuários');
       }
       
-      // Get all users from auth.users via a secure RPC function or view
-      // This is a workaround since we can't access auth.users directly from the client
-      const { data: profiles, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
-        
+      // Get all users from the auth data via edge function
+      // Since we can't query auth.users directly, we'll use a function that returns sanitized user data
+      const { data: users, error } = await supabase.functions.invoke('get-all-users');
+      
       if (error) throw error;
       
-      return profiles || [];
+      return users || [];
     },
   });
 
@@ -99,4 +101,4 @@ const AllUsers = () => {
   );
 };
 
-export default AllUsers; 
+export default AllUsers;
