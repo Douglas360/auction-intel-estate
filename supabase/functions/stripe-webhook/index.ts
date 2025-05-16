@@ -96,6 +96,18 @@ serve(async (req) => {
         // Get subscription details
         const subscription = await stripe.subscriptions.retrieve(subscriptionId);
         
+        // Check if promotion code was applied
+        let discountDetails = null;
+        if (subscription.discount) {
+          const { coupon, promotion_code } = subscription.discount;
+          discountDetails = {
+            coupon_id: coupon.id,
+            promotion_code_id: promotion_code,
+            discount_type: coupon.percent_off ? 'percentage' : 'amount',
+            discount_value: coupon.percent_off || coupon.amount_off / 100,
+          };
+        }
+        
         // Update user_subscriptions table
         await supabase
           .from("user_subscriptions")
@@ -110,6 +122,8 @@ serve(async (req) => {
             cancel_at_period_end: subscription.cancel_at_period_end,
             billing_interval: billingInterval,
             updated_at: new Date().toISOString(),
+            // If discount was applied, store the details in metadata as JSON
+            discount_details: discountDetails ? JSON.stringify(discountDetails) : null,
           }, {
             onConflict: 'user_id',
           });
@@ -132,6 +146,18 @@ serve(async (req) => {
           break;
         }
         
+        // Check if promotion code/coupon was applied
+        let discountDetails = null;
+        if (subscription.discount) {
+          const { coupon, promotion_code } = subscription.discount;
+          discountDetails = {
+            coupon_id: coupon.id,
+            promotion_code_id: promotion_code,
+            discount_type: coupon.percent_off ? 'percentage' : 'amount',
+            discount_value: coupon.percent_off || coupon.amount_off / 100,
+          };
+        }
+        
         // Update user_subscriptions table
         await supabase
           .from("user_subscriptions")
@@ -141,6 +167,7 @@ serve(async (req) => {
             current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
             cancel_at_period_end: subscription.cancel_at_period_end,
             updated_at: new Date().toISOString(),
+            discount_details: discountDetails ? JSON.stringify(discountDetails) : null,
           })
           .eq("id", userSub.id);
         

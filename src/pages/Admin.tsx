@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import Navbar from '@/components/Navbar';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,95 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toast } from "sonner";
-import { Search, Plus, Edit, Trash, User, Home, Gavel, AlertTriangle, MapPin, Calendar, CreditCard, Loader2 } from 'lucide-react';
+import { toast } from "@/hooks/use-toast";
+import { Search, Plus, Edit, Trash, User, Home, Gavel, AlertTriangle, MapPin, Calendar, CreditCard, Loader2, Ticket } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import SubscriptionPlansAdmin from './admin/SubscriptionPlans';
-import { createClient } from '@supabase/supabase-js';
-
-// Mock data for the admin dashboard
-const mockProperties = [
-  {
-    id: '1',
-    title: 'Apartamento 3 dormitórios no Morumbi',
-    type: 'Apartamento',
-    address: 'Rua Engenheiro João de Ulhôa Cintra, 214, Apto 132',
-    city: 'São Paulo',
-    state: 'SP',
-    auctionPrice: 450000,
-    marketPrice: 650000,
-    discount: 30,
-    auctionDate: '2025-06-15',
-    auctionType: 'Judicial',
-    riskLevel: 'low',
-    imageUrl: '/placeholder.svg',
-    status: 'active'
-  },
-  {
-    id: '2',
-    title: 'Casa em condomínio em Alphaville',
-    type: 'Casa',
-    address: 'Alameda Grajau, 325, Residencial 5',
-    city: 'Barueri',
-    state: 'SP',
-    auctionPrice: 1200000,
-    marketPrice: 1850000,
-    discount: 35,
-    auctionDate: '2025-06-22',
-    auctionType: 'Extrajudicial',
-    riskLevel: 'medium',
-    imageUrl: '/placeholder.svg',
-    status: 'active'
-  },
-  {
-    id: '3',
-    title: 'Terreno comercial na Marginal Tietê',
-    type: 'Terreno',
-    address: 'Avenida Marginal Tietê, 2500',
-    city: 'São Paulo',
-    state: 'SP',
-    auctionPrice: 900000,
-    marketPrice: 1300000,
-    discount: 31,
-    auctionDate: '2025-07-05',
-    auctionType: 'Banco',
-    riskLevel: 'low',
-    imageUrl: '/placeholder.svg',
-    status: 'pending'
-  },
-];
-
-const mockUsers = [
-  {
-    id: '1',
-    name: 'João Silva',
-    email: 'joao.silva@email.com',
-    role: 'admin',
-    lastLogin: '2025-05-08T14:22:00',
-    status: 'active'
-  },
-  {
-    id: '2',
-    name: 'Maria Oliveira',
-    email: 'maria.oliveira@email.com',
-    role: 'user',
-    lastLogin: '2025-05-07T09:45:00',
-    status: 'active'
-  },
-  {
-    id: '3',
-    name: 'Carlos Santos',
-    email: 'carlos.santos@email.com',
-    role: 'user',
-    lastLogin: '2025-05-05T16:30:00',
-    status: 'inactive'
-  }
-];
-
-const supabaseAny = createClient(
-  'https://pkvrxhczpvmopgzgcqmk.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBrdnJ4aGN6cHZtb3BnemdjcW1rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY4MDE1NzEsImV4cCI6MjA2MjM3NzU3MX0.8Cp2c2UXtRv7meUl8KNx4ihgdEhUTUd_dLeYDnUQn9o'
-);
+import AllUsers from './admin/AllUsers';
+import DiscountCoupons from './admin/DiscountCoupons';
+import { supabase } from '@/integrations/supabase/client';
 
 const Admin = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -112,6 +31,43 @@ const Admin = () => {
   const [settings, setSettings] = useState<any>(null);
   const [isLoadingSettings, setIsLoadingSettings] = useState(false);
   
+  // Query for dashboard stats
+  const { data: dashboardStats, isLoading: isLoadingStats } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: async () => {
+      // Get total properties count
+      const { count: propertiesCount } = await supabase
+        .from('properties')
+        .select('*', { count: 'exact', head: true });
+      
+      // Get active auctions count
+      const currentDate = new Date().toISOString().split('T')[0];
+      const { count: auctionsCount } = await supabase
+        .from('properties')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'active')
+        .gte('auction_date', currentDate);
+      
+      // Get total users count from edge function
+      const { data: usersData } = await supabase.functions.invoke('get-all-users');
+      const usersCount = usersData?.length || 0;
+      
+      // Get premium users count
+      const { count: premiumCount } = await supabase
+        .from('user_subscriptions')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'active');
+      
+      return {
+        propertiesCount: propertiesCount || 0,
+        auctionsCount: auctionsCount || 0,
+        usersCount,
+        premiumCount: premiumCount || 0
+      };
+    },
+    enabled: activeTab === 'dashboard'
+  });
+
   const formatCurrency = (value: number) => {
     if (!value || isNaN(value)) return 'R$ 0,00';
     return new Intl.NumberFormat('pt-BR', {
@@ -129,7 +85,7 @@ const Admin = () => {
   
   const handleEditProperty = async (property: any) => {
     // Buscar leilões do imóvel
-    const { data: auctionsData } = await supabaseAny
+    const { data: auctionsData } = await supabase
       .from('auctions')
       .select('*')
       .eq('property_id', property.id)
@@ -166,7 +122,7 @@ const Admin = () => {
   const handleDeleteProperty = async (id: string) => {
     const confirmDelete = window.confirm('Tem certeza que deseja excluir este imóvel? Esta ação não pode ser desfeita.');
     if (!confirmDelete) return;
-    const { error } = await supabaseAny.from('properties').delete().eq('id', id);
+    const { error } = await supabase.from('properties').delete().eq('id', id);
     if (error) {
       toast.error('Erro ao excluir imóvel: ' + error.message);
       return;
@@ -190,13 +146,13 @@ const Admin = () => {
       for (const file of imageFiles) {
         const fileExt = file.name.split('.').pop();
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
-        const { data, error } = await supabaseAny.storage.from('properties-images').upload(fileName, file);
+        const { data, error } = await supabase.storage.from('properties-images').upload(fileName, file);
         if (error) {
           toast.error('Erro ao fazer upload da imagem: ' + error.message);
           setIsSaving(false);
           return;
         }
-        const url = supabaseAny.storage.from('properties-images').getPublicUrl(fileName).data.publicUrl;
+        const url = supabase.storage.from('properties-images').getPublicUrl(fileName).data.publicUrl;
         imageUrls.push(url);
       }
     } else if (editingProperty.images && editingProperty.images.length > 0) {
@@ -228,7 +184,7 @@ const Admin = () => {
     let propertyId = editingProperty.id;
     if (propertyId) {
       // UPDATE
-      const { error } = await supabaseAny
+      const { error } = await supabase
         .from('properties')
         .update(propertyData)
         .eq('id', propertyId);
@@ -238,11 +194,11 @@ const Admin = () => {
         return;
       }
       // Remove auctions antigos
-      await supabaseAny.from('auctions').delete().eq('property_id', propertyId);
+      await supabase.from('auctions').delete().eq('property_id', propertyId);
       toast.success("Imóvel atualizado com sucesso!");
     } else {
       // INSERT
-      const { data, error } = await supabaseAny
+      const { data, error } = await supabase
         .from('properties')
         .insert([propertyData])
         .select('id');
@@ -257,7 +213,7 @@ const Admin = () => {
     // Salvar auctions
     for (const auction of auctions) {
       if (!auction.auction_date || !auction.min_bid) continue; // Pula leilões incompletos
-      await supabaseAny.from('auctions').insert([{
+      await supabase.from('auctions').insert([{
         property_id: propertyId,
         auction_number: auction.auction_number,
         auction_date: auction.auction_date,
@@ -305,7 +261,7 @@ const Admin = () => {
 
   const fetchProperties = async () => {
     setIsLoadingProperties(true);
-    const { data, error } = await supabaseAny.from('properties').select('*').order('created_at', { ascending: false });
+    const { data, error } = await supabase.from('properties').select('*').order('created_at', { ascending: false });
     if (error) {
       toast.error('Erro ao buscar imóveis: ' + error.message);
       setIsLoadingProperties(false);
@@ -319,7 +275,7 @@ const Admin = () => {
     const fetchAllAuctions = async () => {
       if (properties.length === 0) return;
       const ids = properties.map(p => p.id);
-      const { data } = await supabaseAny
+      const { data } = await supabase
         .from('auctions')
         .select('property_id, auction_number, auction_date')
         .in('property_id', ids);
@@ -336,7 +292,7 @@ const Admin = () => {
 
   const fetchSettings = async () => {
     setIsLoadingSettings(true);
-    const { data, error } = await supabaseAny.from('system_settings').select('*').single();
+    const { data, error } = await supabase.from('system_settings').select('*').single();
     if (!error && data) setSettings(data);
     setIsLoadingSettings(false);
   };
@@ -352,7 +308,7 @@ const Admin = () => {
   const handleSaveSettings = async () => {
     if (!settings) return;
     setIsLoadingSettings(true);
-    const { error } = await supabaseAny
+    const { error } = await supabase
       .from('system_settings')
       .update({
         openai_api_key: settings.openai_api_key,
@@ -378,17 +334,18 @@ const Admin = () => {
       <div className="container mx-auto max-w-7xl px-4 pt-20 pb-10">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold">Painel Administrativo</h1>
-          <Button className="bg-auction-primary hover:bg-auction-secondary">
+          <Button className="bg-auction-primary hover:bg-auction-secondary" onClick={handleAddNewProperty}>
             <Plus className="mr-2 h-4 w-4" /> Novo Imóvel
           </Button>
         </div>
         
         <Tabs defaultValue="dashboard" value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="properties">Imóveis</TabsTrigger>
             <TabsTrigger value="users">Usuários</TabsTrigger>
             <TabsTrigger value="subscriptions">Assinaturas</TabsTrigger>
+            <TabsTrigger value="coupons">Cupons</TabsTrigger>
             <TabsTrigger value="settings">Configurações</TabsTrigger>
           </TabsList>
           
@@ -401,10 +358,16 @@ const Admin = () => {
                   <Home className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{mockProperties.length}</div>
-                  <p className="text-xs text-muted-foreground">
-                    +2 novos imóveis esta semana
-                  </p>
+                  {isLoadingStats ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      <div className="text-2xl font-bold">{dashboardStats?.propertiesCount || 0}</div>
+                      <p className="text-xs text-muted-foreground">
+                        +2 novos imóveis esta semana
+                      </p>
+                    </>
+                  )}
                 </CardContent>
               </Card>
               <Card>
@@ -413,10 +376,16 @@ const Admin = () => {
                   <Gavel className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">8</div>
-                  <p className="text-xs text-muted-foreground">
-                    +3 leilões nos próximos 7 dias
-                  </p>
+                  {isLoadingStats ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      <div className="text-2xl font-bold">{dashboardStats?.auctionsCount || 0}</div>
+                      <p className="text-xs text-muted-foreground">
+                        +3 leilões nos próximos 7 dias
+                      </p>
+                    </>
+                  )}
                 </CardContent>
               </Card>
               <Card>
@@ -425,10 +394,16 @@ const Admin = () => {
                   <User className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{mockUsers.length}</div>
-                  <p className="text-xs text-muted-foreground">
-                    +1 novo usuário esta semana
-                  </p>
+                  {isLoadingStats ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      <div className="text-2xl font-bold">{dashboardStats?.usersCount || 0}</div>
+                      <p className="text-xs text-muted-foreground">
+                        +1 novo usuário esta semana
+                      </p>
+                    </>
+                  )}
                 </CardContent>
               </Card>
               <Card>
@@ -437,10 +412,16 @@ const Admin = () => {
                   <CreditCard className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">3</div>
-                  <p className="text-xs text-muted-foreground">
-                    +1 novo assinante esta semana
-                  </p>
+                  {isLoadingStats ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      <div className="text-2xl font-bold">{dashboardStats?.premiumCount || 0}</div>
+                      <p className="text-xs text-muted-foreground">
+                        +1 novo assinante esta semana
+                      </p>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -893,81 +874,17 @@ const Admin = () => {
           
           {/* Users Tab */}
           <TabsContent value="users">
-            <Card className="mb-6">
-              <CardContent className="pt-6">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" size={18} />
-                  <Input placeholder="Buscar usuários..." className="pl-10" />
-                </div>
-              </CardContent>
-            </Card>
-            
-            <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-3 text-left">Nome</th>
-                      <th className="px-4 py-3 text-left">Email</th>
-                      <th className="px-4 py-3 text-left">Função</th>
-                      <th className="px-4 py-3 text-left">Último Login</th>
-                      <th className="px-4 py-3 text-center">Status</th>
-                      <th className="px-4 py-3 text-center">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {mockUsers.map((user) => (
-                      <tr key={user.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-4">
-                          <div className="font-medium">{user.name}</div>
-                        </td>
-                        <td className="px-4 py-4">
-                          <div className="">{user.email}</div>
-                        </td>
-                        <td className="px-4 py-4">
-                          <div className="capitalize">{user.role}</div>
-                        </td>
-                        <td className="px-4 py-4">
-                          <div className="">{new Date(user.lastLogin).toLocaleString('pt-BR')}</div>
-                        </td>
-                        <td className="px-4 py-4 text-center">
-                          <Badge 
-                            variant="outline"
-                            className={user.status === 'active' 
-                              ? 'bg-green-50 text-green-600 border-green-200' 
-                              : 'bg-red-50 text-red-600 border-red-200'
-                            }
-                          >
-                            {user.status === 'active' ? 'Ativo' : 'Inativo'}
-                          </Badge>
-                        </td>
-                        <td className="px-4 py-4">
-                          <div className="flex justify-center space-x-2">
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                            >
-                              <Trash className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <AllUsers />
           </TabsContent>
           
           {/* Subscriptions Tab */}
           <TabsContent value="subscriptions">
             <SubscriptionPlansAdmin />
+          </TabsContent>
+          
+          {/* Coupons Tab */}
+          <TabsContent value="coupons">
+            <DiscountCoupons />
           </TabsContent>
           
           {/* Settings Tab */}

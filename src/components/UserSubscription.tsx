@@ -3,7 +3,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CreditCard, Calendar } from 'lucide-react';
+import { CreditCard, Calendar, Tag } from 'lucide-react';
 import { useSubscription } from '@/hooks/useSubscription';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -69,6 +69,31 @@ const UserSubscription = () => {
     );
   }
 
+  // Check if subscription has a discount
+  const hasDiscount = subscriptionStatus.discount_details && 
+    typeof subscriptionStatus.discount_details === 'string' && 
+    subscriptionStatus.discount_details.length > 0;
+    
+  let discountInfo = null;
+  
+  if (hasDiscount) {
+    try {
+      const discountDetails = JSON.parse(subscriptionStatus.discount_details);
+      const discountType = discountDetails.discount_type;
+      const discountValue = discountDetails.discount_value;
+      
+      discountInfo = {
+        type: discountType,
+        value: discountValue,
+        label: discountType === 'percentage' 
+          ? `${discountValue}% de desconto`
+          : `R$ ${discountValue.toFixed(2)} de desconto`
+      };
+    } catch (e) {
+      console.error('Error parsing discount details:', e);
+    }
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -99,6 +124,15 @@ const UserSubscription = () => {
               {subscriptionStatus.billing_interval === 'month' ? 'Cobrança mensal' : 'Cobrança anual'}
             </span>
           </div>
+          
+          {discountInfo && (
+            <div className="flex items-center">
+              <Tag className="h-4 w-4 text-green-600 mr-2" />
+              <span className="text-sm text-green-600 font-medium">
+                {discountInfo.label}
+              </span>
+            </div>
+          )}
         </div>
         
         {subscriptionStatus.cancel_at_period_end && (

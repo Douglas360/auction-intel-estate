@@ -22,6 +22,7 @@ interface SubscriptionStatus {
   billing_interval: string | null;
   current_period_end: string | null;
   cancel_at_period_end: boolean;
+  discount_details?: string | null;
 }
 
 export const useSubscription = () => {
@@ -30,6 +31,7 @@ export const useSubscription = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isCheckoutLoading, setIsCheckoutLoading] = useState<boolean>(false);
   const [isPortalLoading, setIsPortalLoading] = useState<boolean>(false);
+  const [couponCode, setCouponCode] = useState<string>('');
 
   // Verificar se o usuário está autenticado
   const checkAuthentication = async () => {
@@ -113,7 +115,7 @@ export const useSubscription = () => {
   };
 
   // Assinar um plano
-  const subscribeToPlan = async (planId: string, interval: 'month' | 'year' = 'month') => {
+  const subscribeToPlan = async (planId: string, interval: 'month' | 'year' = 'month', coupon?: string) => {
     setIsCheckoutLoading(true);
     
     try {
@@ -139,6 +141,7 @@ export const useSubscription = () => {
           plan_id: planId,
           interval: interval,
           user_id: user.id,
+          coupon_code: coupon || couponCode
         },
       });
 
@@ -164,6 +167,36 @@ export const useSubscription = () => {
       });
     } finally {
       setIsCheckoutLoading(false);
+    }
+  };
+
+  // Validar um cupom de desconto
+  const validateCoupon = async (code: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('validate-coupon', {
+        body: { code }
+      });
+      
+      if (error) throw error;
+      
+      if (data?.valid) {
+        setCouponCode(code);
+        return {
+          valid: true,
+          discount: data.discount
+        };
+      } else {
+        return {
+          valid: false,
+          message: data?.message || 'Cupom inválido'
+        };
+      }
+    } catch (error) {
+      console.error('Erro ao validar cupom:', error);
+      return {
+        valid: false,
+        message: error.message || 'Erro ao validar cupom'
+      };
     }
   };
 
@@ -221,10 +254,13 @@ export const useSubscription = () => {
     isLoading,
     isCheckoutLoading,
     isPortalLoading,
+    couponCode,
+    setCouponCode,
     subscribeToPlan,
     fetchPlans,
     checkSubscriptionStatus,
     openCustomerPortal,
+    validateCoupon,
   };
 };
 

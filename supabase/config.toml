@@ -53,3 +53,10 @@ verify_jwt = true
 
 [functions.get-admin-users]
 verify_jwt = true
+
+[functions.toggle-user-status]
+verify_jwt = true
+
+[functions.manage-coupons]
+verify_jwt = true
+
