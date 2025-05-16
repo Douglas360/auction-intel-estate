@@ -36,6 +36,51 @@ export type Database = {
         }
         Relationships: []
       }
+      alerts: {
+        Row: {
+          auction_type: string | null
+          created_at: string | null
+          discount_min: number | null
+          id: string
+          location: string | null
+          name: string
+          price_max: number | null
+          price_min: number | null
+          property_type: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          auction_type?: string | null
+          created_at?: string | null
+          discount_min?: number | null
+          id?: string
+          location?: string | null
+          name: string
+          price_max?: number | null
+          price_min?: number | null
+          property_type?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          auction_type?: string | null
+          created_at?: string | null
+          discount_min?: number | null
+          id?: string
+          location?: string | null
+          name?: string
+          price_max?: number | null
+          price_min?: number | null
+          property_type?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       auctions: {
         Row: {
           auction_date: string
@@ -61,6 +106,35 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "auctions_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      favorites: {
+        Row: {
+          created_at: string | null
+          id: string
+          property_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          property_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          property_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "favorites_property_id_fkey"
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"
@@ -282,96 +356,7 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      },
-      favorites: {
-        Row: {
-          id: string;
-          user_id: string;
-          property_id: string;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          user_id: string;
-          property_id: string;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          user_id?: string;
-          property_id?: string;
-          created_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "favorites_user_id_fkey";
-            columns: ["user_id"];
-            isOneToOne: false;
-            referencedRelation: "users";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "favorites_property_id_fkey";
-            columns: ["property_id"];
-            isOneToOne: false;
-            referencedRelation: "properties";
-            referencedColumns: ["id"];
-          }
-        ];
-      },
-      alerts: {
-        Row: {
-          id: string;
-          user_id: string;
-          name: string;
-          property_type: string;
-          location: string;
-          price_min: number;
-          price_max: number;
-          discount_min: number;
-          status: string;
-          auction_type: string;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          user_id: string;
-          name: string;
-          property_type: string;
-          location: string;
-          price_min: number;
-          price_max: number;
-          discount_min: number;
-          status: string;
-          auction_type: string;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          user_id?: string;
-          name?: string;
-          property_type?: string;
-          location?: string;
-          price_min?: number;
-          price_max?: number;
-          discount_min?: number;
-          status?: string;
-          auction_type?: string;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "alerts_user_id_fkey";
-            columns: ["user_id"];
-            isOneToOne: false;
-            referencedRelation: "users";
-            referencedColumns: ["id"];
-          }
-        ];
-      },
+      }
     }
     Views: {
       [_ in never]: never

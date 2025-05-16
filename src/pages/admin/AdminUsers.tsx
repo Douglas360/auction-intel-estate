@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { UserPlus, CheckCircle, XCircle } from 'lucide-react';
+import { UserPlus, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 
 interface AdminUser {
   id: string;
@@ -61,26 +61,27 @@ const AdminUsers = () => {
       
       const isSuperAdmin = currentAdmin?.is_super_admin || false;
       
-      // Get list of admin users
+      // Get list of admin users with their emails from a profiles table
+      // This is an alternative approach that doesn't need admin API access
       const { data: admins, error } = await supabase
         .from('admin_users')
-        .select('*')
+        .select(`
+          *,
+          profiles:user_id (
+            email
+          )
+        `)
         .order('created_at', { ascending: false });
       
       if (error) {
         throw error;
       }
       
-      // Get email addresses for each admin user
-      const adminsWithEmail = await Promise.all(
-        admins.map(async (admin) => {
-          const { data: userData } = await supabase.auth.admin.getUserById(admin.user_id);
-          return {
-            ...admin,
-            user_email: userData?.user?.email,
-          };
-        })
-      );
+      // Format the response to match our expected structure
+      const adminsWithEmail = admins.map((admin) => ({
+        ...admin,
+        user_email: admin.profiles?.email,
+      }));
       
       return { admins: adminsWithEmail, currentUserIsSuperAdmin: isSuperAdmin };
     },
@@ -88,25 +89,16 @@ const AdminUsers = () => {
 
   const handleCreateAdmin = async (values: z.infer<typeof formSchema>) => {
     try {
-      // 1. Create user in auth
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: values.email,
-        password: values.password,
-        email_confirm: true, // Auto-confirm email
+      const { data, error } = await supabase.functions.invoke('create-admin-user', {
+        body: { 
+          email: values.email, 
+          password: values.password, 
+          is_super_admin: values.is_super_admin 
+        }
       });
       
-      if (authError) throw new Error(authError.message);
-      
-      // 2. Add user to admin_users table
-      const { error: adminError } = await supabase
-        .from('admin_users')
-        .insert({
-          user_id: authData.user.id,
-          is_active: true,
-          is_super_admin: values.is_super_admin,
-        });
-      
-      if (adminError) throw new Error(adminError.message);
+      if (error) throw new Error(error.message);
+      if (!data.success) throw new Error(data.message || 'Erro desconhecido');
       
       toast.success('Administrador criado com sucesso!');
       setIsDialogOpen(false);
@@ -170,7 +162,7 @@ const AdminUsers = () => {
       
       {isLoading ? (
         <div className="flex justify-center py-8">
-          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+          <Loader2 className="h-8 w-8 animate-spin border-4 border-primary border-t-transparent rounded-full" />
         </div>
       ) : (
         <div className="bg-white rounded-lg shadow overflow-hidden">
