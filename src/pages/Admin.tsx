@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Navbar from '@/components/Navbar';
@@ -24,7 +25,14 @@ const Admin = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [properties, setProperties] = useState<any[]>([]);
   const [isLoadingProperties, setIsLoadingProperties] = useState(false);
-  const [auctions, setAuctions] = useState([
+  // Fix the auctions state type to match what comes from the database
+  const [auctions, setAuctions] = useState<{
+    auction_number: number;
+    auction_date: string;
+    min_bid: string | number;
+    id?: string;
+    property_id?: string;
+  }[]>([
     { auction_number: 1, auction_date: '', min_bid: '' }
   ]);
   const [propertyAuctions, setPropertyAuctions] = useState<Record<string, any>>({});
@@ -90,9 +98,17 @@ const Admin = () => {
       .select('*')
       .eq('property_id', property.id)
       .order('auction_number');
-    setAuctions(auctionsData && auctionsData.length > 0 ? auctionsData : [
-      { auction_number: 1, auction_date: '', min_bid: '' }
-    ]);
+    
+    // Convert auction min_bid to string for form display
+    const processedAuctions = auctionsData && auctionsData.length > 0 
+      ? auctionsData.map(auction => ({
+          ...auction,
+          min_bid: auction.min_bid.toString()
+        }))
+      : [{ auction_number: 1, auction_date: '', min_bid: '' }];
+      
+    setAuctions(processedAuctions);
+    
     setEditingProperty({
       id: property.id,
       title: property.title || '',
@@ -124,10 +140,18 @@ const Admin = () => {
     if (!confirmDelete) return;
     const { error } = await supabase.from('properties').delete().eq('id', id);
     if (error) {
-      toast.error('Erro ao excluir imóvel: ' + error.message);
+      toast({
+        title: "Erro",
+        description: 'Erro ao excluir imóvel: ' + error.message,
+        variant: "destructive",
+      });
       return;
     }
-    toast.success('Imóvel excluído com sucesso.');
+    toast({
+      title: "Sucesso",
+      description: 'Imóvel excluído com sucesso.',
+      variant: "default",
+    });
     await fetchProperties();
   };
   
@@ -148,7 +172,11 @@ const Admin = () => {
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
         const { data, error } = await supabase.storage.from('properties-images').upload(fileName, file);
         if (error) {
-          toast.error('Erro ao fazer upload da imagem: ' + error.message);
+          toast({
+            title: "Erro",
+            description: 'Erro ao fazer upload da imagem: ' + error.message,
+            variant: "destructive", 
+          });
           setIsSaving(false);
           return;
         }
@@ -189,13 +217,21 @@ const Admin = () => {
         .update(propertyData)
         .eq('id', propertyId);
       if (error) {
-        toast.error('Erro ao atualizar imóvel: ' + error.message);
+        toast({
+          title: "Erro",
+          description: 'Erro ao atualizar imóvel: ' + error.message,
+          variant: "destructive",
+        });
         setIsSaving(false);
         return;
       }
       // Remove auctions antigos
       await supabase.from('auctions').delete().eq('property_id', propertyId);
-      toast.success("Imóvel atualizado com sucesso!");
+      toast({
+        title: "Sucesso",
+        description: "Imóvel atualizado com sucesso!",
+        variant: "default",
+      });
     } else {
       // INSERT
       const { data, error } = await supabase
@@ -203,23 +239,33 @@ const Admin = () => {
         .insert([propertyData])
         .select('id');
       if (error) {
-        toast.error('Erro ao salvar imóvel: ' + error.message);
+        toast({
+          title: "Erro",
+          description: 'Erro ao salvar imóvel: ' + error.message,
+          variant: "destructive",
+        });
         setIsSaving(false);
         return;
       }
       propertyId = data[0].id;
-      toast.success("Imóvel salvo com sucesso!");
+      toast({
+        title: "Sucesso",
+        description: "Imóvel salvo com sucesso!",
+        variant: "default",
+      });
     }
-    // Salvar auctions
+    
+    // Salvar auctions - Convert string min_bid to number for database insertion
     for (const auction of auctions) {
       if (!auction.auction_date || !auction.min_bid) continue; // Pula leilões incompletos
       await supabase.from('auctions').insert([{
         property_id: propertyId,
         auction_number: auction.auction_number,
         auction_date: auction.auction_date,
-        min_bid: auction.min_bid
+        min_bid: Number(auction.min_bid)
       }]);
     }
+    
     await fetchProperties();
     setEditingProperty(null);
     setImageFiles([]);
@@ -263,7 +309,11 @@ const Admin = () => {
     setIsLoadingProperties(true);
     const { data, error } = await supabase.from('properties').select('*').order('created_at', { ascending: false });
     if (error) {
-      toast.error('Erro ao buscar imóveis: ' + error.message);
+      toast({
+        title: "Erro",
+        description: 'Erro ao buscar imóveis: ' + error.message,
+        variant: "destructive",
+      });
       setIsLoadingProperties(false);
       return;
     }
@@ -322,9 +372,17 @@ const Admin = () => {
       .eq('id', settings.id);
     setIsLoadingSettings(false);
     if (error) {
-      toast.error('Erro ao salvar configurações: ' + error.message);
+      toast({
+        title: "Erro",
+        description: 'Erro ao salvar configurações: ' + error.message,
+        variant: "destructive",
+      });
     } else {
-      toast.success('Configurações salvas com sucesso!');
+      toast({
+        title: "Sucesso",
+        description: 'Configurações salvas com sucesso!',
+        variant: "default",
+      });
     }
   };
   
@@ -433,7 +491,7 @@ const Admin = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {mockProperties.slice(0, 3).map(property => (
+                    {properties.slice(0, 3).map(property => (
                       <div key={property.id} className="flex justify-between items-center p-3 rounded-md bg-gray-50">
                         <div>
                           <p className="font-medium">{property.title}</p>
@@ -443,7 +501,7 @@ const Admin = () => {
                           </div>
                         </div>
                         <div>
-                          <p className="font-medium text-right">{formatCurrency(property.auctionPrice)}</p>
+                          <p className="font-medium text-right">{formatCurrency(property.auction_price)}</p>
                           <p className="text-sm text-green-600">{property.discount}% off</p>
                         </div>
                       </div>
