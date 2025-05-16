@@ -52,6 +52,7 @@ const toast = {
 };
 
 // Re-export with aliases to avoid confusion
-export { useToast as useToastUi, toast, ToastProvider as ToastProviderUi };
+export { useToastUi, toast, ToastProviderUi };
 export { ToastProvider } from "@/components/ui/toast-provider";
 export { useToast } from "@/components/ui/use-toast";
+
