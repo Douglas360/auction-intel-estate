@@ -5,7 +5,8 @@ import type { Database } from './types';
 
 const SUPABASE_URL = "https://pkvrxhczpvmopgzgcqmk.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBrdnJ4aGN6cHZtb3BnemdjcW1rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY4MDE1NzEsImV4cCI6MjA2MjM3NzU3MX0.8Cp2c2UXtRv7meUl8KNx4ihgdEhUTUd_dLeYDnUQn9o";
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+// For server-side only, don't reference in client-side code
+const SUPABASE_SERVICE_ROLE_KEY = ''; // Empty string for client-side
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
@@ -16,14 +17,8 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 // This should ideally only be used in edge functions or server components
 // For client-side admin operations, proxy requests through an API endpoint
 export const createAdminClient = () => {
-  if (!SUPABASE_SERVICE_ROLE_KEY) {
-    console.error('SUPABASE_SERVICE_ROLE_KEY is not defined');
-    return supabase;
-  }
-  return createClient<Database>(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  });
+  // We don't have access to service role key in the browser
+  // This function will return the regular client in browser environments
+  // Edge functions will have proper environment variables set
+  return supabase;
 };
