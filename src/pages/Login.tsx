@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
+import { toast as toastFn } from '@/components/ui/use-toast';
 import Navbar from '@/components/Navbar';
 
 const Login = () => {
@@ -31,7 +31,7 @@ const Login = () => {
 
         if (error) throw error;
 
-        toast({
+        toastFn({
           title: "Login realizado com sucesso!",
           description: "Você será redirecionado para a página inicial.",
         });
@@ -50,7 +50,7 @@ const Login = () => {
 
         if (error) throw error;
 
-        toast({
+        toastFn({
           title: "Conta criada com sucesso!",
           description: "Por favor, verifique seu email para confirmar sua conta.",
         });
@@ -58,7 +58,7 @@ const Login = () => {
         setIsLogin(true);
       }
     } catch (error: any) {
-      toast({
+      toastFn({
         title: "Erro",
         description: error.message,
         variant: "destructive",
