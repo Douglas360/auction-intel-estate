@@ -30,7 +30,13 @@ export const defaultFilters = {
   maxPrice: 2000000,
   auctionType: '',
   discount: 0,
-  riskLevel: ''
+  riskLevel: '',
+  bedrooms: '',
+  garage: '',
+  allow_financing: false,
+  allow_consorcio: false,
+  allow_fgts: false,
+  allow_parcelamento: false,
 };
 
 const SearchFilters = ({ filters, setFilters, onSearch }: { filters: any, setFilters: (filters: any) => void, onSearch: (filters: any) => void }) => {
@@ -210,6 +216,69 @@ const SearchFilters = ({ filters, setFilters, onSearch }: { filters: any, setFil
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div>
+                  <label htmlFor="bedrooms" className="block text-sm font-medium text-gray-700 mb-1">
+                    Quartos
+                  </label>
+                  <Select
+                    value={localFilters.bedrooms || 'any'}
+                    onValueChange={value => handleChange('bedrooms', value === 'any' ? '' : value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Qualquer" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="any">Qualquer</SelectItem>
+                      <SelectItem value="1">1+</SelectItem>
+                      <SelectItem value="2">2+</SelectItem>
+                      <SelectItem value="3">3+</SelectItem>
+                      <SelectItem value="4">4+</SelectItem>
+                      <SelectItem value="5">5+</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label htmlFor="garage" className="block text-sm font-medium text-gray-700 mb-1">
+                    Garagem
+                  </label>
+                  <Select
+                    value={localFilters.garage || 'any'}
+                    onValueChange={value => handleChange('garage', value === 'any' ? '' : value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Qualquer" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="any">Qualquer</SelectItem>
+                      <SelectItem value="1">1+</SelectItem>
+                      <SelectItem value="2">2+</SelectItem>
+                      <SelectItem value="3">3+</SelectItem>
+                      <SelectItem value="4">4+</SelectItem>
+                      <SelectItem value="5">5+</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex flex-wrap gap-4 mt-2">
+                  <label className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" checked={localFilters.allow_financing} onChange={e => handleChange('allow_financing', e.target.checked)} />
+                    Aceita financiamento
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" checked={localFilters.allow_consorcio} onChange={e => handleChange('allow_consorcio', e.target.checked)} />
+                    Aceita consórcio
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" checked={localFilters.allow_fgts} onChange={e => handleChange('allow_fgts', e.target.checked)} />
+                    Aceita FGTS
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" checked={localFilters.allow_parcelamento} onChange={e => handleChange('allow_parcelamento', e.target.checked)} />
+                    Aceita parcelamento
+                  </label>
                 </div>
               </AccordionContent>
             </AccordionItem>

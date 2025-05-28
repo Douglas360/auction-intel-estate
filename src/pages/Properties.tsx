@@ -93,6 +93,12 @@ const Properties = () => {
     if (filters.discount && filters.discount > 0) query = query.gte('discount', filters.discount);
     if (filters.minPrice && filters.minPrice > 0) query = query.gte('auction_price', filters.minPrice);
     if (filters.maxPrice && filters.maxPrice > 0) query = query.lte('auction_price', filters.maxPrice);
+    if (filters.bedrooms && filters.bedrooms !== '') query = query.gte('bedrooms', Number(filters.bedrooms));
+    if (filters.garage && filters.garage !== '') query = query.gte('garage', Number(filters.garage));
+    if (filters.allow_financing) query = query.eq('allow_financing', true);
+    if (filters.allow_consorcio) query = query.eq('allow_consorcio', true);
+    if (filters.allow_fgts) query = query.eq('allow_fgts', true);
+    if (filters.allow_parcelamento) query = query.eq('allow_parcelamento', true);
     query = query.order('created_at', { ascending: false }).range(from, to);
     const { data, error, count } = await query;
     if (error) throw error;
