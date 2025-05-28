@@ -157,10 +157,10 @@ const ProfitSimulator: React.FC<ProfitSimulatorProps> = ({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4 mt-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
               <div>
                 <div className="flex items-center gap-1 mb-1">
-                  <label className="block text-sm font-medium">Custo de Desocupação</label>
+                  <label className="block text-sm font-medium min-h-[40px]">Custo de Desocupação</label>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <span className="inline-flex cursor-help">
@@ -176,13 +176,13 @@ const ProfitSimulator: React.FC<ProfitSimulatorProps> = ({
                   type="number"
                   value={formData.evictionCost}
                   onChange={(e) => handleChange('evictionCost', e.target.value)}
-                  className="w-full"
+                  className="w-full min-w-0"
                 />
               </div>
               
               <div>
                 <div className="flex items-center gap-1 mb-1">
-                  <label className="block text-sm font-medium">Dívidas (IPTU, etc)</label>
+                  <label className="block text-sm font-medium min-h-[40px]">Dívidas (IPTU, etc)</label>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <span className="inline-flex cursor-help">
@@ -198,7 +198,7 @@ const ProfitSimulator: React.FC<ProfitSimulatorProps> = ({
                   type="number"
                   value={formData.debts}
                   onChange={(e) => handleChange('debts', e.target.value)}
-                  className="w-full"
+                  className="w-full min-w-0"
                 />
               </div>
               
