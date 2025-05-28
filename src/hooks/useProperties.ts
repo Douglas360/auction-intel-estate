@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from "@/components/ui/use-toast";
@@ -48,15 +47,14 @@ export const useProperties = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchProperties = async () => {
+  // Função para buscar imóveis paginados
+  const fetchPropertiesPage = async (page = 1, pageSize = 100) => {
     setIsLoading(true);
     setError(null);
-    
     try {
-      console.log('Iniciando busca de imóveis no Supabase...');
-      
-      // Buscar imóveis do Supabase
-      const { data: propertiesData, error: propertiesError } = await supabase
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+      const { data: propertiesData, error: propertiesError, count } = await supabase
         .from('properties')
         .select(`
           *,
@@ -65,40 +63,25 @@ export const useProperties = () => {
             auction_date,
             min_bid
           )
-        `)
-        .order('created_at', { ascending: false });
-
-      console.log('Resposta do Supabase:', { propertiesData, propertiesError });
+        `, { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(from, to);
 
       if (propertiesError) {
-        console.error('Erro ao buscar imóveis:', propertiesError);
         throw propertiesError;
       }
-
       if (!propertiesData || propertiesData.length === 0) {
-        console.log('Nenhum imóvel encontrado no banco de dados');
         setProperties([]);
         setFeaturedProperties([]);
-        return;
+        return { data: [], count: 0 };
       }
-
-      // Transformar os dados do Supabase para o formato esperado pela aplicação
       const formattedProperties = propertiesData.map(property => {
-        console.log('Transformando imóvel:', property);
-        // Corrigir imagem
         let imageUrl = '/placeholder.svg';
-        
         const images = property['images'];
         if (Array.isArray(images) && images.length > 0) {
           imageUrl = images[0];
         }
-        
-        // Determine o nível de risco com base no desconto
-        // Se não tiver desconto ou for menor que 30%, risco baixo
-        // Entre 30% e 50%, risco médio
-        // Acima de 50%, risco alto
         let riskLevel: 'low' | 'medium' | 'high' = 'medium';
-        
         if (property.discount) {
           if (property.discount < 30) {
             riskLevel = 'low';
@@ -108,44 +91,31 @@ export const useProperties = () => {
             riskLevel = 'high';
           }
         }
-        
-        // Extrair detalhes do imóvel da descrição ou definir como objeto vazio
         const details = {
           area: '0',
           bedrooms: 0,
           bathrooms: 0,
           parkingSpots: 0
         };
-        
-        // Contar quartos, banheiros e vagas a partir da descrição se disponível
         if (property.description) {
           const description = property.description.toLowerCase();
-          
-          // Quartos (buscar por padrões como "2 quartos", "2 dormitórios", etc)
           const bedroomsMatch = description.match(/(\d+)\s*(quarto|dormit[oó]rio|dorm|suíte)/i);
           if (bedroomsMatch) {
             details.bedrooms = parseInt(bedroomsMatch[1], 10);
           }
-          
-          // Banheiros
           const bathroomsMatch = description.match(/(\d+)\s*(banheiro|wc|lavabo)/i);
           if (bathroomsMatch) {
             details.bathrooms = parseInt(bathroomsMatch[1], 10);
           }
-          
-          // Vagas
           const parkingMatch = description.match(/(\d+)\s*(vaga|garagem)/i);
           if (parkingMatch) {
             details.parkingSpots = parseInt(parkingMatch[1], 10);
           }
-          
-          // Área
           const areaMatch = description.match(/(\d+)\s*m²/i);
           if (areaMatch) {
             details.area = areaMatch[1] + 'm²';
           }
         }
-        
         return {
           id: property.id,
           title: property.title,
@@ -176,24 +146,25 @@ export const useProperties = () => {
           }
         };
       });
-
-      console.log('Imóveis formatados:', formattedProperties);
-
       setProperties(formattedProperties);
-      // Definir os 3 primeiros imóveis como destaque
       setFeaturedProperties(formattedProperties.slice(0, 3));
-      
+      return { data: formattedProperties, count };
     } catch (err) {
-      console.error('Erro ao buscar propriedades:', err);
       setError('Não foi possível carregar os imóveis. Por favor, tente novamente mais tarde.');
       toast({
         title: "Erro",
         description: "Não foi possível carregar os imóveis.",
         variant: "destructive",
       });
+      return { data: [], count: 0 };
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Função antiga para compatibilidade (busca primeira página)
+  const fetchProperties = async () => {
+    return fetchPropertiesPage(1, 100);
   };
 
   const getPropertyById = (id: string): Property | undefined => {
@@ -201,7 +172,6 @@ export const useProperties = () => {
   };
 
   useEffect(() => {
-    console.log('useProperties hook montado, buscando imóveis...');
     fetchProperties();
   }, []);
 
@@ -211,6 +181,7 @@ export const useProperties = () => {
     isLoading,
     error,
     fetchProperties,
+    fetchPropertiesPage,
     getPropertyById
   };
 };

@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import PropertyCard from '@/components/PropertyCard';
-import { useProperties } from '@/hooks/useProperties';
 import { Button } from '@/components/ui/button';
 import SearchFilters from '@/components/SearchFilters';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -18,7 +17,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { AlertTriangle } from 'lucide-react';
 
 const Properties = () => {
-  const { properties, isLoading, error } = useProperties();
   const location = useLocation();
   const navigate = useNavigate();
   const params = new URLSearchParams(location.search);
@@ -38,6 +36,11 @@ const Properties = () => {
   const [favorites, setFavorites] = useState<string[]>([]);
   const [user, setUser] = useState<any>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [pageProperties, setPageProperties] = useState<any[]>([]);
+  const [totalProperties, setTotalProperties] = useState<number>(0);
+  const [filteredTotal, setFilteredTotal] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   
   // Update URL when filters, page or sort change
   useEffect(() => {
@@ -75,66 +78,88 @@ const Properties = () => {
     fetchUser();
   }, []);
 
-  // Apply filters and sorting to properties
-  const filteredAndSortedProperties = useMemo(() => {
-    let result = properties;
-    
-    // Apply filters
-    if (filters) {
-      result = result.filter(property => {
-        // Discount minimum
-        if (filters.discount && property.discount < filters.discount) return false;
-        // Property type
-        if (filters.propertyType && filters.propertyType !== '' && property.type !== filters.propertyType) return false;
-        // Auction type
-        if (filters.auctionType && filters.auctionType !== '' && property.auctionType !== filters.auctionType) return false;
-        // Risk level
-        if (filters.riskLevel && filters.riskLevel !== '' && property.riskLevel !== filters.riskLevel) return false;
-        // Location (city, neighborhood, property type or state)
-        if (filters.location && filters.location !== '') {
-          const locationLower = filters.location.toLowerCase();
-          const cityMatch = property.city.toLowerCase().includes(locationLower);
-          const addressMatch = property.address.toLowerCase().includes(locationLower);
-          const typeMatch = property.type.toLowerCase().includes(locationLower);
-          const stateMatch = property.state.toLowerCase().includes(locationLower);
-          if (!cityMatch && !addressMatch && !typeMatch && !stateMatch) return false;
+  // Função para buscar imóveis paginados direto do Supabase
+  const fetchPropertiesPage = async (page = 1, pageSize = 12) => {
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+    const { data, error, count } = await supabase
+      .from('properties')
+      .select('*', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range(from, to);
+    if (error) throw error;
+    return { data, count };
+  };
+
+  // Buscar imóveis da página atual sempre que filtros, página ou ordenação mudarem
+  useEffect(() => {
+    let isMounted = true;
+    setIsLoading(true);
+    setError(null);
+    (async () => {
+      try {
+        const result = await fetchPropertiesPage(currentPage, itemsPerPage);
+        const data = result && Array.isArray(result.data) ? result.data : [];
+        const count = result && typeof result.count === 'number' ? result.count : 0;
+        if (isMounted) {
+          let filtered = data;
+          // Filtros adicionais no frontend (se necessário)
+          if (filters) {
+            filtered = filtered.filter(property => {
+              if (filters.discount && property.discount < filters.discount) return false;
+              if (filters.propertyType && filters.propertyType !== '' && property.type !== filters.propertyType) return false;
+              if (filters.auctionType && filters.auctionType !== '' && property.auction_type !== filters.auctionType) return false;
+              if (filters.riskLevel && filters.riskLevel !== '') {
+                let riskLevel = 'medium';
+                if (property.discount < 30) riskLevel = 'low';
+                else if (property.discount >= 30 && property.discount < 50) riskLevel = 'medium';
+                else if (property.discount >= 50) riskLevel = 'high';
+                if (riskLevel !== filters.riskLevel) return false;
+              }
+              if (filters.location && filters.location !== '') {
+                const locationLower = filters.location.toLowerCase();
+                const cityMatch = property.city?.toLowerCase?.().includes(locationLower);
+                const addressMatch = property.address?.toLowerCase?.().includes(locationLower);
+                const typeMatch = property.type?.toLowerCase?.().includes(locationLower);
+                const stateMatch = property.state?.toLowerCase?.().includes(locationLower);
+                if (!cityMatch && !addressMatch && !typeMatch && !stateMatch) return false;
+              }
+              if (filters.state && filters.state !== '' && property.state !== filters.state) return false;
+              if (filters.minPrice && property.auction_price < filters.minPrice) return false;
+              if (filters.maxPrice && property.auction_price > filters.maxPrice) return false;
+              return true;
+            });
+          }
+          // Ordenação no frontend
+          let sorted = filtered;
+          if (sortBy) {
+            sorted = [...sorted].sort((a, b) => {
+              switch (sortBy) {
+                case 'discount':
+                  return b.discount - a.discount;
+                case 'date':
+                  return new Date(a.auction_date).getTime() - new Date(b.auction_date).getTime();
+                case 'price':
+                  return a.auction_price - b.auction_price;
+                default:
+                  return 0;
+              }
+            });
+          }
+          setPageProperties(sorted);
+          setTotalProperties(count);
+          setFilteredTotal(sorted.length);
         }
-        // State (UF)
-        if (filters.state && filters.state !== '' && property.state !== filters.state) return false;
-        // Price range
-        if (filters.minPrice && property.auctionPrice < filters.minPrice) return false;
-        if (filters.maxPrice && property.auctionPrice > filters.maxPrice) return false;
-        return true;
-      });
-    }
-    
-    // Apply sorting
-    if (sortBy) {
-      result = [...result].sort((a, b) => {
-        switch (sortBy) {
-          case 'discount':
-            return b.discount - a.discount; // Higher discount first
-          case 'date':
-            return new Date(a.auctionDate).getTime() - new Date(b.auctionDate).getTime(); // Sooner date first
-          case 'price':
-            return a.auctionPrice - b.auctionPrice; // Lower price first
-          default:
-            return 0;
-        }
-      });
-    }
-    
-    return result;
-  }, [properties, filters, sortBy]);
-  
-  // Get current page properties
-  const paginatedProperties = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredAndSortedProperties.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredAndSortedProperties, currentPage, itemsPerPage]);
-  
-  // Calculate total pages
-  const totalPages = Math.ceil(filteredAndSortedProperties.length / itemsPerPage);
+      } catch (err: any) {
+        setError('Não foi possível carregar os imóveis. Por favor, tente novamente mais tarde.');
+      } finally {
+        setIsLoading(false);
+      }
+    })();
+    return () => { isMounted = false; };
+  }, [currentPage, filters, sortBy, itemsPerPage]);
+
+  const totalPages = Math.ceil(totalProperties / itemsPerPage);
   
   // Handle search
   const handleSearch = (newFilters: any) => {
@@ -213,7 +238,9 @@ const Properties = () => {
           <div className="lg:col-span-3">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-semibold">
-                {filteredAndSortedProperties.length} imóveis encontrados
+                {filters && Object.values(filters).some(v => v !== '' && v !== null && v !== undefined && v !== 0)
+                  ? filteredTotal
+                  : totalProperties} imóveis encontrados
               </h2>
               <div className="flex items-center space-x-2">
                 <span className="text-sm text-gray-500">Ordenar por:</span>
@@ -229,13 +256,24 @@ const Properties = () => {
               </div>
             </div>
             
-            {paginatedProperties.length > 0 ? (
+            {pageProperties.length > 0 ? (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {paginatedProperties.map((property) => (
+                  {pageProperties.map((property) => (
                     <PropertyCard
                       key={property.id}
-                      {...property}
+                      id={property.id}
+                      title={property.title}
+                      address={property.address}
+                      city={property.city}
+                      state={property.state}
+                      imageUrl={property.images && property.images.length > 0 ? property.images[0] : undefined}
+                      auctionPrice={property.auction_price}
+                      marketPrice={property.market_price}
+                      discount={property.discount}
+                      auctionDate={property.auction_date}
+                      auctionType={property.auction_type}
+                      riskLevel={property.discount < 30 ? 'low' : property.discount < 50 ? 'medium' : 'high'}
                       clickable={true}
                       isFavorite={favorites.includes(property.id)}
                       onToggleFavorite={handleToggleFavorite}

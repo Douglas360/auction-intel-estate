@@ -158,7 +158,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
         
         <CardFooter className="flex flex-col gap-2 p-4 pt-0">
           <Button 
-            className="w-full bg-blue-600 hover:bg-blue-700 transition-transform duration-200 hover:scale-105 focus:scale-105 focus:ring-2 focus:ring-blue-400"
+            className="w-full bg-primary hover:bg-primary/90 transition-transform duration-200 hover:scale-105 focus:scale-105 focus:ring-2 focus:ring-primary"
             onClick={(e) => {
               if (clickable) {
                 e.preventDefault();

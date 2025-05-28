@@ -203,9 +203,7 @@ const SearchFilters = ({ onSearch }: { onSearch: (filters: any) => void }) => {
             </AccordionItem>
           </Accordion>
 
-          <Button type="submit" className="w-full bg-auction-primary hover:bg-auction-secondary">
-            Buscar Imóveis
-          </Button>
+          <Button type="submit" className="w-full bg-primary hover:bg-primary/90">Buscar Imóveis</Button>
           <Button type="button" variant="outline" className="w-full mt-2" onClick={handleReset}>
             Resetar filtros
           </Button>
