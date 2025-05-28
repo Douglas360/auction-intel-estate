@@ -19,6 +19,14 @@ const riskLabels: Record<string, string> = {
   high: "Alto risco"
 };
 
+// Define discount badge colors
+const getDiscountBadgeColor = (discount: number): string => {
+  if (discount > 80) return "bg-red-500 text-white";
+  if (discount >= 60) return "bg-orange-500 text-white";
+  if (discount >= 40) return "bg-yellow-500 text-black";
+  return "bg-green-500 text-white";
+};
+
 interface PropertyCardProps {
   id: string;
   title: string;
@@ -114,7 +122,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
             className="w-full h-48 object-cover"
           />
           {/* Badge de desconto sem tooltip */}
-          <Badge className="absolute top-2 right-2 bg-white text-black px-3 py-1 rounded-full text-xs font-semibold shadow-none animate-fade-in border border-gray-300">
+          <Badge className={`absolute top-2 right-2 ${getDiscountBadgeColor(discount)} px-3 py-1 rounded-full text-xs font-semibold shadow-none animate-fade-in border border-gray-300`}>
             {discount}% abaixo do mercado
           </Badge>
           {/* Badge de tipo de leilão sem tooltip */}
