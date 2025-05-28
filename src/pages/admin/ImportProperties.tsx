@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,63 @@ interface ImportedProperty {
   url?: string;
 }
 
+interface NewFormatProperty {
+  _id: number;
+  aceitaConsorcio: boolean;
+  aceitaFGTS: boolean;
+  aceitaFinanciamento: boolean;
+  aceitaParcelamento: boolean;
+  autor?: string;
+  bairro: string;
+  bairroId: number;
+  bairroNome: string;
+  caracteristicas: string[];
+  cep: string;
+  cidade: string;
+  cidadeId: number;
+  cidadeNome: string;
+  dataCadastro: { $date: string };
+  dataFim: { $date: string };
+  descricao: string;
+  detalheLocalizacao: {
+    id: number;
+    rua: string;
+    cep: string;
+  };
+  estado: string;
+  estadoId: number;
+  garagem?: number;
+  imagensImoveis: Array<{
+    caminhoImagem?: string;
+    caminhoImagemSmall: string;
+    caminhoImagemLarge: string;
+  }>;
+  imovelPracas: Array<{
+    imovelId: number;
+    valor: number;
+    dataFim: { $date: string };
+  }>;
+  imovelTipoBems: number[];
+  imovelTipoBemsDescricoes: string[];
+  informacaoJudicial: string;
+  interacaoCount: number;
+  localizacao: string;
+  metroQuadrado?: number;
+  processo: string;
+  quartos?: number;
+  siteLeilaoId: number;
+  situacaoId: number;
+  tipoBemDescricao: string;
+  tipoBemId: number;
+  tipoLeilaoCaixaId?: number;
+  tipoLeilaoId: number;
+  tipoLeilaoNome: string;
+  urlLeilaoExterno: string;
+  valor: number;
+  valorAvaliacao: number;
+  valorDesconto: number;
+}
+
 interface ImportError {
   property: Partial<ImportedProperty>;
   error: string;
@@ -58,6 +116,62 @@ const ImportProperties = () => {
       return `${parts[2]}-${parts[1]}-${parts[0]}`;
     }
     return dateString;
+  };
+
+  const formatCurrencyValue = (value: number): string => {
+    return `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
+  const convertNewFormatToStandard = (newProperty: NewFormatProperty): ImportedProperty => {
+    // Convert the new format to the standard format
+    const auctionDate = new Date(newProperty.dataFim.$date).toLocaleDateString('pt-BR');
+    const firstImage = newProperty.imagensImoveis.length > 0 ? newProperty.imagensImoveis[0].caminhoImagemLarge : '';
+    
+    return {
+      title: newProperty.descricao,
+      address: newProperty.detalheLocalizacao.rua,
+      auction_price: formatCurrencyValue(newProperty.valor),
+      market_price: formatCurrencyValue(newProperty.valorAvaliacao),
+      discount: newProperty.valorDesconto.toString(),
+      auction_date: auctionDate,
+      image: firstImage,
+      type: newProperty.tipoBemDescricao,
+      auction_type: newProperty.tipoLeilaoNome,
+      auctioneer: 'Leiloeiro não informado',
+      description: newProperty.informacaoJudicial || newProperty.descricao,
+      state: newProperty.estado,
+      city: newProperty.cidade,
+      url: newProperty.urlLeilaoExterno
+    };
+  };
+
+  const detectJsonFormat = (data: any): 'standard' | 'new' | 'unknown' => {
+    if (Array.isArray(data)) {
+      if (data.length === 0) return 'unknown';
+      
+      const firstItem = data[0];
+      
+      // Check if it's the new format
+      if (firstItem._id !== undefined && firstItem.tipoBemDescricao !== undefined && firstItem.valorAvaliacao !== undefined) {
+        return 'new';
+      }
+      
+      // Check if it's the standard format
+      if (firstItem.title !== undefined && firstItem.auction_price !== undefined) {
+        return 'standard';
+      }
+    } else {
+      // Single object
+      if (data._id !== undefined && data.tipoBemDescricao !== undefined && data.valorAvaliacao !== undefined) {
+        return 'new';
+      }
+      
+      if (data.title !== undefined && data.auction_price !== undefined) {
+        return 'standard';
+      }
+    }
+    
+    return 'unknown';
   };
 
   const handleJsonUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -106,10 +220,30 @@ const ImportProperties = () => {
       setProgress(0);
 
       // Parse JSON data
-      const properties: ImportedProperty[] = JSON.parse(jsonData);
+      const rawData = JSON.parse(jsonData);
       
+      // Detect the format
+      const format = detectJsonFormat(rawData);
+      
+      if (format === 'unknown') {
+        throw new Error("Formato de JSON não reconhecido. Verifique se está usando um dos formatos suportados.");
+      }
+
+      console.log(`Formato detectado: ${format}`);
+
+      let properties: ImportedProperty[] = [];
+
+      if (format === 'new') {
+        // Handle new format
+        const newFormatData: NewFormatProperty[] = Array.isArray(rawData) ? rawData : [rawData];
+        properties = newFormatData.map(convertNewFormatToStandard);
+      } else {
+        // Handle standard format
+        properties = Array.isArray(rawData) ? rawData : [rawData];
+      }
+
       if (!Array.isArray(properties)) {
-        throw new Error("O JSON fornecido não é um array");
+        throw new Error("O JSON fornecido não contém um array válido de propriedades");
       }
 
       let successCount = 0;
@@ -133,9 +267,9 @@ const ImportProperties = () => {
             throw new Error("Erro ao verificar se o imóvel já existe");
           }
 
-          const auction_price = parsePrice(property.auction_price);
-          const market_price = parsePrice(property.market_price);
-          const discount = parseInt(property.discount, 10);
+          const auction_price = typeof property.auction_price === 'string' ? parsePrice(property.auction_price) : property.auction_price;
+          const market_price = typeof property.market_price === 'string' ? parsePrice(property.market_price) : property.market_price;
+          const discount = typeof property.discount === 'string' ? parseInt(property.discount, 10) : property.discount;
           const formattedDate = parseDate(property.auction_date);
 
           // Prepare data for insertion or update
@@ -235,7 +369,8 @@ const ImportProperties = () => {
         <CardHeader>
           <CardTitle>Importar Imóveis</CardTitle>
           <CardDescription>
-            Importe imóveis em leilão através de um arquivo JSON ou cole o JSON diretamente
+            Importe imóveis em leilão através de um arquivo JSON ou cole o JSON diretamente. 
+            O sistema suporta tanto o formato padrão quanto o novo formato de importação.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -248,7 +383,7 @@ const ImportProperties = () => {
             <TabsContent value="paste">
               <div className="space-y-4">
                 <Textarea 
-                  placeholder="Cole o JSON dos imóveis aqui..."
+                  placeholder="Cole o JSON dos imóveis aqui... (suporta ambos os formatos)"
                   className="min-h-[200px] font-mono text-sm"
                   value={jsonData}
                   onChange={(e) => {
@@ -267,7 +402,7 @@ const ImportProperties = () => {
                   <div className="flex flex-col items-center justify-center pt-5 pb-6">
                     <UploadIcon className="w-8 h-8 mb-4 text-gray-500" />
                     <p className="mb-2 text-sm text-gray-500"><span className="font-semibold">Clique para enviar</span> ou arraste e solte</p>
-                    <p className="text-xs text-gray-500">Arquivos JSON</p>
+                    <p className="text-xs text-gray-500">Arquivos JSON (ambos os formatos suportados)</p>
                   </div>
                   <input 
                     id="json-file" 
