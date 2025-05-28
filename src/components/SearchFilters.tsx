@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Card,
   CardContent,
@@ -22,31 +22,39 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 
-const SearchFilters = ({ onSearch }: { onSearch: (filters: any) => void }) => {
-  const defaultFilters = {
-    location: '',
-    propertyType: '',
-    minPrice: 0,
-    maxPrice: 2000000,
-    auctionType: '',
-    discount: 0,
-    riskLevel: ''
-  };
-  const [filters, setFilters] = useState(defaultFilters);
-  
+export const defaultFilters = {
+  location: '',
+  state: '',
+  propertyType: '',
+  minPrice: 0,
+  maxPrice: 2000000,
+  auctionType: '',
+  discount: 0,
+  riskLevel: ''
+};
+
+const SearchFilters = ({ filters, setFilters, onSearch }: { filters: any, setFilters: (filters: any) => void, onSearch: (filters: any) => void }) => {
+  const [localFilters, setLocalFilters] = useState(filters);
+
+  useEffect(() => {
+    setLocalFilters(filters);
+  }, [filters]);
+
   const handleChange = (name: string, value: any) => {
-    setFilters({
-      ...filters,
+    setLocalFilters({
+      ...localFilters,
       [name]: value
     });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSearch(filters);
+    setFilters(localFilters);
+    onSearch(localFilters);
   };
 
   const handleReset = () => {
+    setLocalFilters(defaultFilters);
     setFilters(defaultFilters);
     onSearch(defaultFilters);
   };
@@ -80,6 +88,7 @@ const SearchFilters = ({ onSearch }: { onSearch: (filters: any) => void }) => {
             </label>
             <div className="flex space-x-2">
               <Select
+                value={localFilters.state}
                 onValueChange={(value) => handleChange('state', value)}
               >
                 <SelectTrigger className="w-1/3">
@@ -96,7 +105,7 @@ const SearchFilters = ({ onSearch }: { onSearch: (filters: any) => void }) => {
               <Input
                 id="location"
                 placeholder="Cidade ou bairro"
-                value={filters.location}
+                value={localFilters.location}
                 onChange={(e) => handleChange('location', e.target.value)}
                 className="w-2/3"
               />
@@ -108,6 +117,7 @@ const SearchFilters = ({ onSearch }: { onSearch: (filters: any) => void }) => {
               Tipo de Imóvel
             </label>
             <Select
+              value={localFilters.propertyType}
               onValueChange={(value) => handleChange('propertyType', value)}
             >
               <SelectTrigger>
@@ -131,11 +141,11 @@ const SearchFilters = ({ onSearch }: { onSearch: (filters: any) => void }) => {
               <AccordionContent className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Faixa de Preço: {formatCurrency(filters.minPrice)} - {formatCurrency(filters.maxPrice)}
+                    Faixa de Preço: {formatCurrency(localFilters.minPrice)} - {formatCurrency(localFilters.maxPrice)}
                   </label>
                   <div className="flex space-x-4 mt-6">
                     <Slider
-                      defaultValue={[filters.minPrice, filters.maxPrice]}
+                      defaultValue={[localFilters.minPrice, localFilters.maxPrice]}
                       max={5000000}
                       step={10000}
                       onValueChange={(value) => {
@@ -152,6 +162,7 @@ const SearchFilters = ({ onSearch }: { onSearch: (filters: any) => void }) => {
                     Tipo de Leilão
                   </label>
                   <Select
+                    value={localFilters.auctionType}
                     onValueChange={(value) => handleChange('auctionType', value)}
                   >
                     <SelectTrigger>
@@ -169,10 +180,10 @@ const SearchFilters = ({ onSearch }: { onSearch: (filters: any) => void }) => {
 
                 <div>
                   <label htmlFor="discount" className="block text-sm font-medium text-gray-700 mb-1">
-                    Desconto Mínimo: {filters.discount}%
+                    Desconto Mínimo: {localFilters.discount}%
                   </label>
                   <Slider
-                    defaultValue={[filters.discount]}
+                    defaultValue={[localFilters.discount]}
                     min={0}
                     max={80}
                     step={5}
@@ -185,6 +196,7 @@ const SearchFilters = ({ onSearch }: { onSearch: (filters: any) => void }) => {
                     Nível de Risco Jurídico
                   </label>
                   <Select
+                    value={localFilters.riskLevel}
                     onValueChange={(value) => handleChange('riskLevel', value)}
                   >
                     <SelectTrigger>

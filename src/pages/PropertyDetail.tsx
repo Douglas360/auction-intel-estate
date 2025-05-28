@@ -8,7 +8,6 @@ import ProfitSimulator from '@/components/ProfitSimulator';
 import { Calendar, MapPin, Home, DollarSign, Clock, Gavel, AlertTriangle, Heart, Share2, FileText, File, ChevronRight, Ruler, Bed, Car } from 'lucide-react';
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { toast } from "@/components/ui/use-toast";
-import { useProperties } from '@/hooks/useProperties';
 import { createClient } from '@supabase/supabase-js';
 import { 
   Breadcrumb, 
@@ -30,7 +29,8 @@ const PropertyDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const { properties, isLoading, error } = useProperties();
+  const [property, setProperty] = React.useState<any>(null);
+  const [isLoading, setIsLoading] = React.useState(true);
   const [mapsApiKey, setMapsApiKey] = React.useState<string | null>(null);
   const [isLoadingMapsKey, setIsLoadingMapsKey] = React.useState(true);
   const [mapsKeyError, setMapsKeyError] = React.useState<string | null>(null);
@@ -38,8 +38,34 @@ const PropertyDetail = () => {
   const [user, setUser] = React.useState<any>(null);
   const [showAuthModal, setShowAuthModal] = React.useState(false);
 
-  const property = properties.find((p) => p.id === id);
-  
+  React.useEffect(() => {
+    const fetchProperty = async () => {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('properties')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (data) {
+        setProperty({
+          ...data,
+          imageUrl: Array.isArray(data.images) && data.images.length > 0 ? data.images[0] : '/placeholder.svg',
+          auctionPrice: data.auction_price,
+          marketPrice: data.market_price,
+          discount: data.discount,
+          auctionDate: data.auction_date,
+          auctionType: data.auction_type,
+          // Adicione outros campos se necessário
+        });
+      } else {
+        setProperty(null);
+      }
+      setIsLoading(false);
+    };
+    fetchProperty();
+  }, [id]);
+
   // Preserve the search parameters when navigating back to the properties list
   const backToPropertiesLink = React.useMemo(() => {
     // Get referrer search params if they exist
@@ -119,7 +145,7 @@ const PropertyDetail = () => {
     );
   }
 
-  if (error || !property) {
+  if (!property) {
     toast({
       title: "Imóvel não encontrado",
       description: "O imóvel que você está procurando não está disponível.",

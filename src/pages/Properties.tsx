@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import PropertyCard from '@/components/PropertyCard';
 import { Button } from '@/components/ui/button';
-import SearchFilters from '@/components/SearchFilters';
+import SearchFilters, { defaultFilters } from '@/components/SearchFilters';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Pagination,
@@ -15,6 +15,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertTriangle } from 'lucide-react';
+import useSWR from 'swr';
 
 const Properties = () => {
   const location = useLocation();
@@ -27,7 +28,7 @@ const Properties = () => {
   const initialSort = params.get('sort') || 'discount';
   
   const [filters, setFilters] = useState<any>(
-    initialQuery ? { location: initialQuery } : null
+    initialQuery ? { ...defaultFilters, location: initialQuery } : { ...defaultFilters }
   );
   const [currentPage, setCurrentPage] = useState<number>(initialPage);
   const [sortBy, setSortBy] = useState<string>(initialSort);
@@ -79,85 +80,72 @@ const Properties = () => {
   }, []);
 
   // Função para buscar imóveis paginados direto do Supabase
-  const fetchPropertiesPage = async (page = 1, pageSize = 12) => {
+  const fetchPropertiesPage = async (filters: any, page = 1, pageSize = 12) => {
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
-    const { data, error, count } = await supabase
-      .from('properties')
-      .select('*', { count: 'exact' })
-      .order('created_at', { ascending: false })
-      .range(from, to);
+    let query = supabase.from('properties').select('*', { count: 'exact' });
+    if (filters.state && filters.state !== '') query = query.eq('state', filters.state);
+    if (filters.location && filters.location !== '') {
+      query = query.or(`city.ilike.%${filters.location}%,address.ilike.%${filters.location}%,type.ilike.%${filters.location}%,state.ilike.%${filters.location}%`);
+    }
+    if (filters.propertyType && filters.propertyType !== '') query = query.eq('type', filters.propertyType);
+    if (filters.auctionType && filters.auctionType !== '') query = query.eq('auction_type', filters.auctionType);
+    if (filters.discount && filters.discount > 0) query = query.gte('discount', filters.discount);
+    if (filters.minPrice && filters.minPrice > 0) query = query.gte('auction_price', filters.minPrice);
+    if (filters.maxPrice && filters.maxPrice > 0) query = query.lte('auction_price', filters.maxPrice);
+    query = query.order('created_at', { ascending: false }).range(from, to);
+    const { data, error, count } = await query;
     if (error) throw error;
     return { data, count };
   };
 
-  // Buscar imóveis da página atual sempre que filtros, página ou ordenação mudarem
+  // SWR para buscar imóveis
+  const { data: swrData, error: swrError, isValidating } = useSWR(
+    [filters, currentPage, itemsPerPage],
+    ([filters, page, pageSize]) => fetchPropertiesPage(filters, page, pageSize),
+    { revalidateOnFocus: false }
+  );
+
   useEffect(() => {
-    let isMounted = true;
-    setIsLoading(true);
-    setError(null);
-    (async () => {
-      try {
-        const result = await fetchPropertiesPage(currentPage, itemsPerPage);
-        const data = result && Array.isArray(result.data) ? result.data : [];
-        const count = result && typeof result.count === 'number' ? result.count : 0;
-        if (isMounted) {
-          let filtered = data;
-          // Filtros adicionais no frontend (se necessário)
-          if (filters) {
-            filtered = filtered.filter(property => {
-              if (filters.discount && property.discount < filters.discount) return false;
-              if (filters.propertyType && filters.propertyType !== '' && property.type !== filters.propertyType) return false;
-              if (filters.auctionType && filters.auctionType !== '' && property.auction_type !== filters.auctionType) return false;
-              if (filters.riskLevel && filters.riskLevel !== '') {
-                let riskLevel = 'medium';
-                if (property.discount < 30) riskLevel = 'low';
-                else if (property.discount >= 30 && property.discount < 50) riskLevel = 'medium';
-                else if (property.discount >= 50) riskLevel = 'high';
-                if (riskLevel !== filters.riskLevel) return false;
-              }
-              if (filters.location && filters.location !== '') {
-                const locationLower = filters.location.toLowerCase();
-                const cityMatch = property.city?.toLowerCase?.().includes(locationLower);
-                const addressMatch = property.address?.toLowerCase?.().includes(locationLower);
-                const typeMatch = property.type?.toLowerCase?.().includes(locationLower);
-                const stateMatch = property.state?.toLowerCase?.().includes(locationLower);
-                if (!cityMatch && !addressMatch && !typeMatch && !stateMatch) return false;
-              }
-              if (filters.state && filters.state !== '' && property.state !== filters.state) return false;
-              if (filters.minPrice && property.auction_price < filters.minPrice) return false;
-              if (filters.maxPrice && property.auction_price > filters.maxPrice) return false;
-              return true;
-            });
-          }
-          // Ordenação no frontend
-          let sorted = filtered;
-          if (sortBy) {
-            sorted = [...sorted].sort((a, b) => {
-              switch (sortBy) {
-                case 'discount':
-                  return b.discount - a.discount;
-                case 'date':
-                  return new Date(a.auction_date).getTime() - new Date(b.auction_date).getTime();
-                case 'price':
-                  return a.auction_price - b.auction_price;
-                default:
-                  return 0;
-              }
-            });
-          }
-          setPageProperties(sorted);
-          setTotalProperties(count);
-          setFilteredTotal(sorted.length);
-        }
-      } catch (err: any) {
-        setError('Não foi possível carregar os imóveis. Por favor, tente novamente mais tarde.');
-      } finally {
-        setIsLoading(false);
+    if (swrData) {
+      let sorted = swrData.data || [];
+      if (filters && filters.riskLevel && filters.riskLevel !== '') {
+        const riskMap = { baixo: 'low', médio: 'medium', alto: 'high' };
+        const selectedRisk = riskMap[filters.riskLevel] || filters.riskLevel;
+        sorted = sorted.filter(property => {
+          let riskLevel = 'medium';
+          if (property.discount < 30) riskLevel = 'low';
+          else if (property.discount >= 30 && property.discount < 50) riskLevel = 'medium';
+          else if (property.discount >= 50) riskLevel = 'high';
+          return riskLevel === selectedRisk;
+        });
       }
-    })();
-    return () => { isMounted = false; };
-  }, [currentPage, filters, sortBy, itemsPerPage]);
+      if (sortBy) {
+        sorted = [...sorted].sort((a, b) => {
+          switch (sortBy) {
+            case 'discount':
+              return b.discount - a.discount;
+            case 'date':
+              return new Date(a.auction_date).getTime() - new Date(b.auction_date).getTime();
+            case 'price':
+              return a.auction_price - b.auction_price;
+            default:
+              return 0;
+          }
+        });
+      }
+      setPageProperties(sorted);
+      setTotalProperties(swrData.count || 0);
+      setFilteredTotal(sorted.length);
+      setIsLoading(false);
+    } else if (swrError) {
+      setError('Não foi possível carregar os imóveis. Por favor, tente novamente mais tarde.');
+      setIsLoading(false);
+    } else if (isValidating) {
+      setIsLoading(true);
+      setError(null);
+    }
+  }, [swrData, swrError, isValidating, filters, sortBy]);
 
   const totalPages = Math.ceil(totalProperties / itemsPerPage);
   
@@ -232,7 +220,7 @@ const Properties = () => {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Advanced filters sidebar */}
           <div className="lg:col-span-1">
-            <SearchFilters onSearch={handleSearch} />
+            <SearchFilters filters={filters} setFilters={setFilters} onSearch={handleSearch} />
           </div>
           {/* Property listings */}
           <div className="lg:col-span-3">
@@ -314,11 +302,9 @@ const Properties = () => {
                             );
                           })
                           .map((page, idx, array) => {
-                            // Add ellipsis if there's a gap
                             const showEllipsisBefore = idx > 0 && page - array[idx - 1] > 1;
-                            
                             return (
-                              <React.Fragment key={page}>
+                              <div key={page} style={{ display: 'contents' }}>
                                 {showEllipsisBefore && (
                                   <PaginationItem>
                                     <span className="flex h-9 w-9 items-center justify-center">...</span>
@@ -336,7 +322,7 @@ const Properties = () => {
                                     {page}
                                   </PaginationLink>
                                 </PaginationItem>
-                              </React.Fragment>
+                              </div>
                             );
                           })
                         }
@@ -360,7 +346,7 @@ const Properties = () => {
             ) : (
               <div className="text-center py-20">
                 <p className="text-gray-500 mb-4">Nenhum imóvel encontrado com os filtros selecionados.</p>
-                <Button variant="outline" onClick={() => setFilters(null)}>
+                <Button variant="outline" onClick={() => setFilters({ ...defaultFilters })}>
                   Limpar filtros
                 </Button>
               </div>

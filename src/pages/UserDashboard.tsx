@@ -6,7 +6,7 @@ import UserAlerts from '@/components/UserAlerts';
 import UserProfile from '@/components/UserProfile';
 import UserSubscription from '@/components/UserSubscription';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import SearchFilters from '@/components/SearchFilters';
+import SearchFilters, { defaultFilters } from '@/components/SearchFilters';
 import PropertyCard from '@/components/PropertyCard';
 import RiskAnalyzer from '@/components/RiskAnalyzer';
 import ProfitSimulator from '@/components/ProfitSimulator';
@@ -20,7 +20,7 @@ const UserDashboard = () => {
   const [user, setUser] = useState(null);
   const { subscriptionStatus } = useSubscription();
   const { properties, isLoading, error } = useProperties();
-  const [filters, setFilters] = useState<any>(null);
+  const [filters, setFilters] = useState<any>(defaultFilters);
   const [sortBy, setSortBy] = useState<string>('discount');
   const itemsPerPage = 12;
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -196,7 +196,7 @@ const UserDashboard = () => {
           <TabsContent value="busca" className="mt-0">
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
               <div className="lg:col-span-1">
-                <SearchFilters onSearch={handleSearch} />
+                <SearchFilters filters={filters} setFilters={setFilters} onSearch={handleSearch} />
               </div>
               <div className="lg:col-span-3">
                 <div className="flex justify-between items-center mb-6">
