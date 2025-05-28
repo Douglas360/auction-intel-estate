@@ -114,7 +114,7 @@ const AdminLayout = () => {
 
       <footer className="bg-gray-100 border-t">
         <div className="container mx-auto px-4 py-4 text-center text-sm text-gray-600">
-          &copy; {new Date().getFullYear()} HAU - Área Administrativa
+          &copy; {new Date().getFullYear()} Ap³ - Área Administrativa
         </div>
       </footer>
     </div>

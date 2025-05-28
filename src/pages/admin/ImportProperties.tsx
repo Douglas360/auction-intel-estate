@@ -100,6 +100,8 @@ const ImportProperties = () => {
   const [progress, setProgress] = useState<number>(0);
   const [importErrors, setImportErrors] = useState<ImportError[]>([]);
   const [batchSize, setBatchSize] = useState<number>(100); // Batch size for large imports
+  const [elapsedTime, setElapsedTime] = useState<number>(0);
+  const [timerId, setTimerId] = useState<NodeJS.Timeout | null>(null);
   const navigate = useNavigate();
 
   const parsePrice = (priceString: string): number => {
@@ -312,6 +314,12 @@ const ImportProperties = () => {
 
   const importProperties = async () => {
     try {
+      setElapsedTime(0);
+      if (timerId) clearInterval(timerId);
+      const newTimerId = setInterval(() => {
+        setElapsedTime((prev) => prev + 1);
+      }, 1000);
+      setTimerId(newTimerId);
       setIsUploading(true);
       setImportStats(null);
       setImportErrors([]);
@@ -424,6 +432,8 @@ const ImportProperties = () => {
     } finally {
       setIsUploading(false);
       setProgress(100);
+      if (timerId) clearInterval(timerId);
+      setTimerId(null);
     }
   };
 
@@ -505,6 +515,9 @@ const ImportProperties = () => {
                 <span className="text-sm font-medium">{progress}%</span>
               </div>
               <Progress value={progress} className="h-2" />
+              <div className="mt-2 text-xs text-gray-600">
+                Tempo de execução: {Math.floor(elapsedTime / 60)}:{(elapsedTime % 60).toString().padStart(2, '0')}
+              </div>
               {importStats && (
                 <div className="mt-2 text-xs text-gray-600">
                   Processados: {importStats.success + importStats.failed} de {importStats.total}
