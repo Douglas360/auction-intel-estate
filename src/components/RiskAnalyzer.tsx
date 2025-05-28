@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
   Card, 
@@ -105,7 +104,7 @@ const RiskAnalyzer = () => {
             <Button 
               type="submit" 
               disabled={!file || loading} 
-              className="w-full bg-auction-primary hover:bg-auction-secondary"
+              className="w-full bg-primary text-white hover:bg-primary/90"
             >
               {loading ? (
                 <>

@@ -25,7 +25,7 @@ const Index = () => {
     isLoading,
     subscribeToPlan 
   } = useSubscription();
-  const { featuredProperties, isLoading: isLoadingProperties } = useProperties();
+  const { featuredProperties, isLoading: isLoadingProperties, topProfitProperties, lowestPriceProperties, highestPriceProperties } = useProperties();
   const [favorites, setFavorites] = useState<string[]>([]);
   const [user, setUser] = useState<any>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -224,7 +224,6 @@ const Index = () => {
                 Confira algumas das melhores oportunidades disponíveis agora.
               </p>
             </div>
-            
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {isLoadingProperties ? (
                 <div className="col-span-3 text-center py-10">Carregando imóveis...</div>
@@ -242,11 +241,101 @@ const Index = () => {
                 <div className="col-span-3 text-center py-10">Nenhum imóvel encontrado.</div>
               )}
             </div>
-            
             <div className="text-center mt-8">
               <Button variant="default" onClick={() => navigate('/properties')} className="text-lg">
                 Ver Todos os Imóveis <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Maiores Rentabilidades */}
+        <div className="py-16 bg-white">
+          <div className="container mx-auto px-4">
+            <div className="text-center max-w-3xl mx-auto mb-10">
+              <h2 className="text-3xl font-bold mb-4">Maiores Rentabilidades</h2>
+              <p className="text-gray-600">
+                Imóveis com maior potencial de lucro percentual sobre o valor de compra.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {isLoadingProperties ? (
+                <div className="col-span-3 text-center py-10">Carregando imóveis...</div>
+              ) : topProfitProperties.length > 0 ? (
+                topProfitProperties.map(property => (
+                  <div key={property.id} className="relative">
+                    <PropertyCard
+                      {...property}
+                      clickable={true}
+                      isFavorite={favorites.includes(property.id)}
+                      onToggleFavorite={handleToggleFavorite}
+                    />
+                    <span className="absolute top-2 left-2 bg-green-600 text-white text-xs font-bold px-2 py-1 rounded shadow">
+                      {property.profitability?.toFixed(1)}% rentabilidade
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <div className="col-span-3 text-center py-10">Nenhum imóvel encontrado.</div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Menores Preços */}
+        <div className="py-16 bg-gray-50">
+          <div className="container mx-auto px-4">
+            <div className="text-center max-w-3xl mx-auto mb-10">
+              <h2 className="text-3xl font-bold mb-4">Menores Preços</h2>
+              <p className="text-gray-600">
+                Imóveis com os menores preços de leilão disponíveis.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {isLoadingProperties ? (
+                <div className="col-span-3 text-center py-10">Carregando imóveis...</div>
+              ) : lowestPriceProperties.length > 0 ? (
+                lowestPriceProperties.map(property => (
+                  <PropertyCard
+                    key={property.id}
+                    {...property}
+                    clickable={true}
+                    isFavorite={favorites.includes(property.id)}
+                    onToggleFavorite={handleToggleFavorite}
+                  />
+                ))
+              ) : (
+                <div className="col-span-3 text-center py-10">Nenhum imóvel encontrado.</div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Maiores Preços */}
+        <div className="py-16 bg-white">
+          <div className="container mx-auto px-4">
+            <div className="text-center max-w-3xl mx-auto mb-10">
+              <h2 className="text-3xl font-bold mb-4">Maiores Preços</h2>
+              <p className="text-gray-600">
+                Imóveis de alto padrão e grandes oportunidades.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {isLoadingProperties ? (
+                <div className="col-span-3 text-center py-10">Carregando imóveis...</div>
+              ) : highestPriceProperties.length > 0 ? (
+                highestPriceProperties.map(property => (
+                  <PropertyCard
+                    key={property.id}
+                    {...property}
+                    clickable={true}
+                    isFavorite={favorites.includes(property.id)}
+                    onToggleFavorite={handleToggleFavorite}
+                  />
+                ))
+              ) : (
+                <div className="col-span-3 text-center py-10">Nenhum imóvel encontrado.</div>
+              )}
             </div>
           </div>
         </div>

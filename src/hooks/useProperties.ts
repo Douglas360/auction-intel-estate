@@ -39,6 +39,9 @@ export interface Property {
   };
   matricula_pdf_url?: string;
   edital_pdf_url?: string;
+  bedrooms?: number;
+  garage?: number;
+  area_util?: number;
 }
 
 export const useProperties = () => {
@@ -143,7 +146,10 @@ export const useProperties = () => {
             secondDate: property.auctions?.[1]?.auction_date || '',
             minimumBid1: property.auctions?.[0]?.min_bid || property.min_bid || 0,
             minimumBid2: property.auctions?.[1]?.min_bid || 0
-          }
+          },
+          ...(typeof (property as any).bedrooms !== 'undefined' ? { bedrooms: (property as any).bedrooms } : {}),
+          ...(typeof (property as any).garage !== 'undefined' ? { garage: (property as any).garage } : {}),
+          ...(typeof (property as any).area_util !== 'undefined' ? { area_util: (property as any).area_util } : {}),
         };
       });
       setProperties(formattedProperties);
@@ -182,6 +188,19 @@ export const useProperties = () => {
     error,
     fetchProperties,
     fetchPropertiesPage,
-    getPropertyById
+    getPropertyById,
+    topProfitProperties: properties
+      .filter(p => p.auctionPrice > 0 && p.marketPrice > 0)
+      .map(p => ({ ...p, profitability: ((p.marketPrice - p.auctionPrice) / p.auctionPrice) * 100 }))
+      .sort((a, b) => b.profitability - a.profitability)
+      .slice(0, 6),
+    lowestPriceProperties: [...properties]
+      .filter(p => p.auctionPrice > 0)
+      .sort((a, b) => a.auctionPrice - b.auctionPrice)
+      .slice(0, 6),
+    highestPriceProperties: [...properties]
+      .filter(p => p.auctionPrice > 0)
+      .sort((a, b) => b.auctionPrice - a.auctionPrice)
+      .slice(0, 6),
   };
 };

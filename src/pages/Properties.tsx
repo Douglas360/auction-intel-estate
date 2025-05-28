@@ -277,6 +277,9 @@ const Properties = () => {
                       clickable={true}
                       isFavorite={favorites.includes(property.id)}
                       onToggleFavorite={handleToggleFavorite}
+                      allow_consorcio={property.allow_consorcio}
+                      allow_fgts={property.allow_fgts}
+                      allow_financing={property.allow_financing}
                     />
                   ))}
                 </div>

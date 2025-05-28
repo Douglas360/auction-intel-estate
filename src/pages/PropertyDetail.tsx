@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Navbar from '@/components/Navbar';
 import RiskAnalyzer from '@/components/RiskAnalyzer';
 import ProfitSimulator from '@/components/ProfitSimulator';
-import { Calendar, MapPin, Home, DollarSign, Clock, Gavel, AlertTriangle, Heart, Share2, FileText, File, ChevronRight } from 'lucide-react';
+import { Calendar, MapPin, Home, DollarSign, Clock, Gavel, AlertTriangle, Heart, Share2, FileText, File, ChevronRight, Ruler, Bed, Car } from 'lucide-react';
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { toast } from "@/components/ui/use-toast";
 import { useProperties } from '@/hooks/useProperties';
@@ -238,6 +238,39 @@ const PropertyDetail = () => {
                   {property.discount}% abaixo do mercado
                 </Badge>
               </div>
+              {/* Card de informações principais */}
+              <div className="flex flex-wrap gap-6 mt-6 mb-2 items-center">
+                {/* Área útil */}
+                {(!!property.area_util || (!!property.details?.area && property.details.area !== '0' && property.details.area !== '')) && (
+                  <div className="flex flex-col items-center min-w-[110px]">
+                    <span className="text-gray-600 text-sm mb-1">Área Útil:</span>
+                    <div className="flex items-center gap-1">
+                      <Ruler className="w-5 h-5 text-auction-primary" />
+                      <span className="text-lg font-semibold">{property.area_util || property.details.area} m²</span>
+                    </div>
+                  </div>
+                )}
+                {/* Quartos */}
+                {(!!property.bedrooms || (!!property.details?.bedrooms && property.details.bedrooms !== 0)) && (
+                  <div className="flex flex-col items-center min-w-[90px]">
+                    <span className="text-gray-600 text-sm mb-1">Quartos:</span>
+                    <div className="flex items-center gap-1">
+                      <Bed className="w-5 h-5 text-auction-primary" />
+                      <span className="text-lg font-semibold">{property.bedrooms || property.details?.bedrooms}</span>
+                    </div>
+                  </div>
+                )}
+                {/* Vagas */}
+                {(!!property.garage || (!!property.details?.parkingSpots && property.details.parkingSpots !== 0)) && (
+                  <div className="flex flex-col items-center min-w-[90px]">
+                    <span className="text-gray-600 text-sm mb-1">Vagas:</span>
+                    <div className="flex items-center gap-1">
+                      <Car className="w-5 h-5 text-auction-primary" />
+                      <span className="text-lg font-semibold">{property.garage || property.details?.parkingSpots}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
               {/* Line 2: Address */}
               <div className="flex items-center text-gray-600 text-sm mt-1">
                 <MapPin className="h-4 w-4 mr-1" />
@@ -260,8 +293,11 @@ const PropertyDetail = () => {
               </div>
               {/* Line 4: Buttons */}
               <div className="flex flex-wrap gap-2 mt-4 items-center">
-                <Button className="bg-auction-primary hover:bg-auction-secondary flex items-center gap-2">
-                  <Gavel className="w-4 h-4" /> Quero arrematar
+                <Button 
+                  className="bg-primary text-white hover:bg-primary/90 border-none shadow-none"
+                  onClick={() => {/* ação de arrematar */}}
+                >
+                  Quero arrematar
                 </Button>
                 
                 <Button variant="outline" className="flex items-center gap-2" onClick={handleShare}>
@@ -424,7 +460,7 @@ const PropertyDetail = () => {
                     </div>
                   </div>
                 </div>
-                <Button className="w-full bg-auction-primary hover:bg-auction-secondary">
+                <Button className="w-full bg-green-400 text-black hover:bg-green-500">
                   Quero participar deste leilão
                 </Button>
               </TabsContent>

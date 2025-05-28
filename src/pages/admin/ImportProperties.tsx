@@ -28,6 +28,13 @@ interface ImportedProperty {
   state: string;
   city: string;
   url?: string;
+  process_number: string;
+  bedrooms: number | null;
+  garage: number | null;
+  area_util: number | null;
+  allow_consorcio?: boolean;
+  allow_fgts?: boolean;
+  allow_financing?: boolean;
 }
 
 interface NewFormatProperty {
@@ -154,7 +161,14 @@ const ImportProperties = () => {
       description: newProperty.informacaoJudicial || newProperty.descricao || '',
       state: newProperty.estado || '',
       city: newProperty.cidade || '',
-      url: newProperty.urlLeilaoExterno || ''
+      url: newProperty.urlLeilaoExterno || '',
+      process_number: newProperty.processo || '',
+      bedrooms: newProperty.quartos || null,
+      garage: newProperty.garagem || null,
+      area_util: newProperty.metroQuadrado || null,
+      allow_consorcio: newProperty.aceitaConsorcio ?? null,
+      allow_fgts: newProperty.aceitaFGTS ?? null,
+      allow_financing: newProperty.aceitaFinanciamento ?? null
     };
   };
 
@@ -278,7 +292,14 @@ const ImportProperties = () => {
           edital_pdf_url: property.edital_pdf_url,
           state: property.state,
           city: property.city,
-          auctioneer_site: property.url
+          auctioneer_site: property.url,
+          process_number: property.process_number,
+          bedrooms: property.bedrooms,
+          garage: property.garage,
+          area_util: property.area_util,
+          allow_consorcio: property.allow_consorcio,
+          allow_fgts: property.allow_fgts,
+          allow_financing: property.allow_financing
         };
 
         let result;

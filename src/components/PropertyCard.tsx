@@ -43,6 +43,9 @@ interface PropertyCardProps {
   clickable?: boolean;
   isFavorite?: boolean;
   onToggleFavorite?: (propertyId: string) => void;
+  allow_consorcio?: boolean;
+  allow_fgts?: boolean;
+  allow_financing?: boolean;
 }
 
 const PropertyCard: React.FC<PropertyCardProps> = ({
@@ -61,6 +64,9 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
   clickable = false,
   isFavorite = false,
   onToggleFavorite,
+  allow_consorcio,
+  allow_fgts,
+  allow_financing,
 }) => {
   const location = useLocation();
   
@@ -125,11 +131,20 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
           <Badge className={`absolute top-2 right-2 ${getDiscountBadgeColor(discount)} px-3 py-1 rounded-full text-xs font-semibold shadow-none animate-fade-in border border-gray-300`}>
             {discount}% abaixo do mercado
           </Badge>
-          {/* Badge de tipo de leilão sem tooltip */}
-          <div className="absolute bottom-0 left-2 mb-2">
-            <Badge className="bg-white text-black px-2 py-0.5 rounded-full text-xs font-medium shadow-none animate-slide-in border border-gray-300">
+          {/* Badge de tipo de leilão e condições */}
+          <div className="absolute bottom-0 left-2 mb-2 flex gap-2 items-center flex-wrap max-w-[90%]">
+            <Badge className="bg-gray-100 text-gray-800 px-2 py-0.5 rounded-full text-xs font-medium border border-gray-200">
               {auctionType || 'Venda Online Caixa'}
             </Badge>
+            {allow_consorcio && (
+              <Badge className="bg-gray-100 text-gray-800 px-2 py-0.5 rounded-full text-xs font-medium border border-gray-200">Consórcio</Badge>
+            )}
+            {allow_fgts && (
+              <Badge className="bg-gray-100 text-gray-800 px-2 py-0.5 rounded-full text-xs font-medium border border-gray-200">FGTS</Badge>
+            )}
+            {allow_financing && (
+              <Badge className="bg-gray-100 text-gray-800 px-2 py-0.5 rounded-full text-xs font-medium border border-gray-200">Financiamento</Badge>
+            )}
           </div>
         </div>
         
