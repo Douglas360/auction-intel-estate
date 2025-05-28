@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -100,6 +99,7 @@ const ImportProperties = () => {
   const [importStats, setImportStats] = useState<{ total: number; success: number; failed: number } | null>(null);
   const [progress, setProgress] = useState<number>(0);
   const [importErrors, setImportErrors] = useState<ImportError[]>([]);
+  const [batchSize, setBatchSize] = useState<number>(100); // Batch size for large imports
   const navigate = useNavigate();
 
   const parsePrice = (priceString: string): number => {
@@ -123,25 +123,36 @@ const ImportProperties = () => {
   };
 
   const convertNewFormatToStandard = (newProperty: NewFormatProperty): ImportedProperty => {
-    // Convert the new format to the standard format
-    const auctionDate = new Date(newProperty.dataFim.$date).toLocaleDateString('pt-BR');
-    const firstImage = newProperty.imagensImoveis.length > 0 ? newProperty.imagensImoveis[0].caminhoImagemLarge : '';
+    // Safely handle date conversion with null checks
+    let auctionDate = '';
+    if (newProperty.dataFim && newProperty.dataFim.$date) {
+      try {
+        auctionDate = new Date(newProperty.dataFim.$date).toLocaleDateString('pt-BR');
+      } catch (error) {
+        console.warn('Invalid date format in dataFim:', newProperty.dataFim);
+        auctionDate = '';
+      }
+    }
+    
+    const firstImage = newProperty.imagensImoveis && newProperty.imagensImoveis.length > 0 
+      ? newProperty.imagensImoveis[0].caminhoImagemLarge || newProperty.imagensImoveis[0].caminhoImagemSmall || ''
+      : '';
     
     return {
-      title: newProperty.descricao,
-      address: newProperty.detalheLocalizacao.rua,
-      auction_price: formatCurrencyValue(newProperty.valor),
-      market_price: formatCurrencyValue(newProperty.valorAvaliacao),
-      discount: newProperty.valorDesconto.toString(),
+      title: newProperty.descricao || 'Título não informado',
+      address: newProperty.detalheLocalizacao?.rua || newProperty.localizacao || 'Endereço não informado',
+      auction_price: formatCurrencyValue(newProperty.valor || 0),
+      market_price: formatCurrencyValue(newProperty.valorAvaliacao || 0),
+      discount: (newProperty.valorDesconto || 0).toString(),
       auction_date: auctionDate,
       image: firstImage,
-      type: newProperty.tipoBemDescricao,
-      auction_type: newProperty.tipoLeilaoNome,
+      type: newProperty.tipoBemDescricao || 'Tipo não informado',
+      auction_type: newProperty.tipoLeilaoNome || 'Leilão',
       auctioneer: 'Leiloeiro não informado',
-      description: newProperty.informacaoJudicial || newProperty.descricao,
-      state: newProperty.estado,
-      city: newProperty.cidade,
-      url: newProperty.urlLeilaoExterno
+      description: newProperty.informacaoJudicial || newProperty.descricao || '',
+      state: newProperty.estado || '',
+      city: newProperty.cidade || '',
+      url: newProperty.urlLeilaoExterno || ''
     };
   };
 
@@ -212,12 +223,101 @@ const ImportProperties = () => {
     return data ? data.id : false; // Return the ID if found, false if not found
   };
 
+  const processBatch = async (
+    properties: ImportedProperty[], 
+    startIndex: number, 
+    batchSize: number,
+    totalProperties: number
+  ): Promise<{ success: number; failed: number; errors: ImportError[] }> => {
+    const endIndex = Math.min(startIndex + batchSize, properties.length);
+    const batch = properties.slice(startIndex, endIndex);
+    
+    let successCount = 0;
+    let failedCount = 0;
+    const errors: ImportError[] = [];
+
+    console.log(`Processando lote ${startIndex + 1}-${endIndex} de ${totalProperties} imóveis...`);
+
+    for (let i = 0; i < batch.length; i++) {
+      try {
+        const property = batch[i];
+        const globalIndex = startIndex + i;
+        
+        // Update progress for this batch
+        const currentProgress = Math.round(((globalIndex + 1) / totalProperties) * 100);
+        setProgress(currentProgress);
+
+        // Check if property already exists
+        const existingPropertyId = await checkIfPropertyExists(property.title);
+        
+        if (existingPropertyId === null) {
+          throw new Error("Erro ao verificar se o imóvel já existe");
+        }
+
+        const auction_price = typeof property.auction_price === 'string' ? parsePrice(property.auction_price) : property.auction_price;
+        const market_price = typeof property.market_price === 'string' ? parsePrice(property.market_price) : property.market_price;
+        const discount = typeof property.discount === 'string' ? parseInt(property.discount, 10) : property.discount;
+        const formattedDate = parseDate(property.auction_date);
+
+        // Prepare data for insertion or update
+        const propertyData = {
+          title: property.title,
+          address: property.address,
+          auction_price,
+          market_price,
+          discount,
+          auction_date: formattedDate,
+          images: property.image ? [property.image] : [],
+          type: property.type,
+          auction_type: property.auction_type,
+          auctioneer: property.auctioneer,
+          description: property.description,
+          matricula_pdf_url: property.matricula_pdf_url,
+          edital_pdf_url: property.edital_pdf_url,
+          state: property.state,
+          city: property.city,
+          auctioneer_site: property.url
+        };
+
+        let result;
+        if (existingPropertyId) {
+          result = await supabase
+            .from('properties')
+            .update(propertyData)
+            .eq('id', existingPropertyId);
+        } else {
+          result = await supabase
+            .from('properties')
+            .insert(propertyData);
+        }
+        
+        if (result.error) {
+          throw new Error(`Erro ao processar imóvel: ${result.error.message}`);
+        }
+
+        successCount++;
+      } catch (propertyError: any) {
+        console.error("Erro ao processar propriedade:", propertyError);
+        failedCount++;
+        errors.push({
+          property: batch[i],
+          error: propertyError.message || "Erro desconhecido",
+          index: startIndex + i
+        });
+      }
+    }
+
+    return { success: successCount, failed: failedCount, errors };
+  };
+
   const importProperties = async () => {
     try {
       setIsUploading(true);
       setImportStats(null);
       setImportErrors([]);
       setProgress(0);
+
+      console.log('Iniciando importação...');
 
       // Parse JSON data
       const rawData = JSON.parse(jsonData);
@@ -234,9 +334,18 @@ const ImportProperties = () => {
       let properties: ImportedProperty[] = [];
 
       if (format === 'new') {
-        // Handle new format
+        // Handle new format with better error handling
         const newFormatData: NewFormatProperty[] = Array.isArray(rawData) ? rawData : [rawData];
-        properties = newFormatData.map(convertNewFormatToStandard);
+        console.log(`Convertendo ${newFormatData.length} imóveis do novo formato...`);
+        
+        properties = newFormatData.map((item, index) => {
+          try {
+            return convertNewFormatToStandard(item);
+          } catch (error) {
+            console.error(`Erro ao converter item ${index}:`, error, item);
+            throw new Error(`Erro na conversão do item ${index}: ${error.message}`);
+          }
+        });
       } else {
         // Handle standard format
         properties = Array.isArray(rawData) ? rawData : [rawData];
@@ -246,109 +355,67 @@ const ImportProperties = () => {
         throw new Error("O JSON fornecido não contém um array válido de propriedades");
       }
 
-      let successCount = 0;
-      let failedCount = 0;
-      const errors: ImportError[] = [];
+      console.log(`Total de ${properties.length} imóveis para processar`);
 
-      // Process properties one by one
-      for (let i = 0; i < properties.length; i++) {
+      // Adjust batch size based on total number of properties
+      let dynamicBatchSize = batchSize;
+      if (properties.length > 10000) {
+        dynamicBatchSize = 50; // Smaller batches for very large imports
+      } else if (properties.length > 1000) {
+        dynamicBatchSize = 100;
+      }
+
+      let totalSuccess = 0;
+      let totalFailed = 0;
+      const allErrors: ImportError[] = [];
+
+      // Process properties in batches
+      for (let i = 0; i < properties.length; i += dynamicBatchSize) {
         try {
-          const property = properties[i];
+          console.log(`Processando lote ${Math.floor(i / dynamicBatchSize) + 1} de ${Math.ceil(properties.length / dynamicBatchSize)}`);
           
-          // Update progress
-          const currentProgress = Math.round(((i + 1) / properties.length) * 100);
-          setProgress(currentProgress);
+          const batchResult = await processBatch(properties, i, dynamicBatchSize, properties.length);
+          
+          totalSuccess += batchResult.success;
+          totalFailed += batchResult.failed;
+          allErrors.push(...batchResult.errors);
 
-          // Check if property already exists
-          const existingPropertyId = await checkIfPropertyExists(property.title);
-          
-          if (existingPropertyId === null) {
-            // An error occurred while checking
-            throw new Error("Erro ao verificar se o imóvel já existe");
+          // Short delay between batches to prevent overwhelming the database
+          if (i + dynamicBatchSize < properties.length) {
+            await new Promise(r => setTimeout(r, 100));
           }
 
-          const auction_price = typeof property.auction_price === 'string' ? parsePrice(property.auction_price) : property.auction_price;
-          const market_price = typeof property.market_price === 'string' ? parsePrice(property.market_price) : property.market_price;
-          const discount = typeof property.discount === 'string' ? parseInt(property.discount, 10) : property.discount;
-          const formattedDate = parseDate(property.auction_date);
-
-          // Prepare data for insertion or update
-          const propertyData = {
-            title: property.title,
-            address: property.address,
-            auction_price,
-            market_price,
-            discount,
-            auction_date: formattedDate,
-            images: property.image ? [property.image] : [],
-            type: property.type,
-            auction_type: property.auction_type,
-            auctioneer: property.auctioneer,
-            description: property.description,
-            matricula_pdf_url: property.matricula_pdf_url,
-            edital_pdf_url: property.edital_pdf_url,
-            state: property.state,
-            city: property.city,
-            auctioneer_site: property.url
-          };
-
-          let result;
-          // Insert new property or update existing one
-          if (existingPropertyId) {
-            // Update existing property
-            result = await supabase
-              .from('properties')
-              .update(propertyData)
-              .eq('id', existingPropertyId);
-              
-            if (result.error) {
-              throw new Error(`Erro ao atualizar imóvel: ${result.error.message}`);
-            } else {
-              console.log(`Imóvel atualizado com sucesso: ${property.title}`);
-            }
-          } else {
-            // Insert new property
-            result = await supabase
-              .from('properties')
-              .insert(propertyData);
-              
-            if (result.error) {
-              throw new Error(`Erro ao inserir imóvel: ${result.error.message}`);
-            } else {
-              console.log(`Imóvel inserido com sucesso: ${property.title}`);
-            }
-          }
-
-          successCount++;
-        } catch (propertyError: any) {
-          console.error("Erro ao processar propriedade:", propertyError);
-          failedCount++;
-          errors.push({
-            property: properties[i],
-            error: propertyError.message || "Erro desconhecido",
-            index: i
+          // Update stats periodically for better UX
+          setImportStats({
+            total: properties.length,
+            success: totalSuccess,
+            failed: totalFailed
           });
-        }
 
-        // Short delay to prevent overwhelming the database
-        await new Promise(r => setTimeout(r, 100));
+        } catch (batchError: any) {
+          console.error(`Erro no lote iniciado em ${i}:`, batchError);
+          // Continue with next batch instead of stopping everything
+          totalFailed += Math.min(dynamicBatchSize, properties.length - i);
+        }
       }
 
       setImportStats({
         total: properties.length,
-        success: successCount,
-        failed: failedCount
+        success: totalSuccess,
+        failed: totalFailed
       });
 
-      setImportErrors(errors);
+      setImportErrors(allErrors);
 
-      if (successCount > 0) {
-        toast.success(`${successCount} imóveis importados com sucesso`);
+      if (totalSuccess > 0) {
+        toast.success(`${totalSuccess} imóveis importados com sucesso`);
       }
       
-      if (failedCount > 0) {
-        toast.error(`${failedCount} imóveis falharam na importação`);
+      if (totalFailed > 0) {
+        toast.error(`${totalFailed} imóveis falharam na importação`);
       }
+
+      console.log(`Importação concluída: ${totalSuccess} sucessos, ${totalFailed} falhas`);
 
     } catch (error: any) {
       console.error("Erro na importação:", error);
@@ -356,10 +423,7 @@ const ImportProperties = () => {
       setImportStats(null);
     } finally {
       setIsUploading(false);
-      // Keep progress at 100% if completed or 0 if failed with no items processed
-      if (progress > 0) {
-        setProgress(100);
-      }
+      setProgress(100);
     }
   };
 
@@ -371,6 +435,7 @@ const ImportProperties = () => {
           <CardDescription>
             Importe imóveis em leilão através de um arquivo JSON ou cole o JSON diretamente. 
             O sistema suporta tanto o formato padrão quanto o novo formato de importação.
+            Otimizado para importações grandes (50.000+ imóveis).
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -388,11 +453,27 @@ const ImportProperties = () => {
                   value={jsonData}
                   onChange={(e) => {
                     setJsonData(e.target.value);
-                    // Reset previous errors and stats when the JSON is modified
                     setImportErrors([]);
                     setImportStats(null);
                   }}
                 />
+                <div className="flex items-center gap-2">
+                  <label htmlFor="batch-size" className="text-sm font-medium">
+                    Tamanho do lote (para arquivos grandes):
+                  </label>
+                  <input
+                    id="batch-size"
+                    type="number"
+                    min="10"
+                    max="500"
+                    value={batchSize}
+                    onChange={(e) => setBatchSize(parseInt(e.target.value) || 100)}
+                    className="w-20 px-2 py-1 border rounded text-sm"
+                  />
+                  <span className="text-xs text-gray-500">
+                    (Recomendado: 50-100 para arquivos grandes)
+                  </span>
+                </div>
               </div>
             </TabsContent>
             
@@ -403,6 +484,7 @@ const ImportProperties = () => {
                     <UploadIcon className="w-8 h-8 mb-4 text-gray-500" />
                     <p className="mb-2 text-sm text-gray-500"><span className="font-semibold">Clique para enviar</span> ou arraste e solte</p>
                     <p className="text-xs text-gray-500">Arquivos JSON (ambos os formatos suportados)</p>
+                    <p className="text-xs text-gray-400 mt-1">Suporta arquivos grandes (50.000+ imóveis)</p>
                   </div>
                   <input 
                     id="json-file" 
@@ -419,10 +501,15 @@ const ImportProperties = () => {
           {isUploading && (
             <div className="mt-6">
               <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium">Processando importação</span>
+                <span className="text-sm font-medium">Processando importação em lotes</span>
                 <span className="text-sm font-medium">{progress}%</span>
               </div>
               <Progress value={progress} className="h-2" />
+              {importStats && (
+                <div className="mt-2 text-xs text-gray-600">
+                  Processados: {importStats.success + importStats.failed} de {importStats.total}
+                </div>
+              )}
             </div>
           )}
 
@@ -448,10 +535,10 @@ const ImportProperties = () => {
 
           {importErrors.length > 0 && (
             <div className="mt-6">
-              <h3 className="font-medium mb-2">Erros de Importação:</h3>
+              <h3 className="font-medium mb-2">Erros de Importação ({importErrors.length} erros):</h3>
               <ScrollArea className="h-[200px] rounded-md border">
                 <div className="p-4 space-y-4">
-                  {importErrors.map((error, idx) => (
+                  {importErrors.slice(0, 20).map((error, idx) => (
                     <Alert key={idx} variant="destructive">
                       <XCircle className="h-4 w-4" />
                       <AlertTitle>Erro no registro #{error.index + 1}: {error.property.title}</AlertTitle>
@@ -462,6 +549,11 @@ const ImportProperties = () => {
                       </AlertDescription>
                     </Alert>
                   ))}
+                  {importErrors.length > 20 && (
+                    <div className="text-sm text-gray-500 text-center">
+                      ... e mais {importErrors.length - 20} erros
+                    </div>
+                  )}
                 </div>
               </ScrollArea>
             </div>
