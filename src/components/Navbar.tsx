@@ -41,9 +41,9 @@ const Navbar = () => {
   return (
     <nav className="bg-white border-b border-gray-200 fixed w-full z-30 top-0 left-0 shadow-sm">
       <div className="px-3 py-3 lg:px-5 lg:pl-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center justify-start">
-            <Link to="/" className="flex ml-2 md:mr-24">
+        <div className="flex items-center justify-between max-w-7xl mx-auto">
+          <div className="flex items-center flex-shrink-0">
+            <Link to="/" className="flex ml-2">
               <img 
                 src="/assets/logo.png" 
                 alt="HAU Logo" 
@@ -51,8 +51,7 @@ const Navbar = () => {
               />              
             </Link>
           </div>
-          <div className="hidden md:flex items-center space-x-4">
-            {/* <Link to="/search" className="nav-link">Buscar</Link> */}
+          <div className="hidden md:flex flex-1 items-center justify-center space-x-4">
             <Link to="/properties" className="nav-link">Imóveis</Link>
             <Link to="/simulator" className="nav-link">Simulador</Link>
             <Link to="/pricing" className="nav-link">Planos</Link>
@@ -60,7 +59,7 @@ const Navbar = () => {
               <Link to="/dashboard" className="nav-link">Minha Conta</Link>
             )}
           </div>
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-3 flex-shrink-0">
             <button type="button" className="p-1 rounded-full text-gray-600 hover:bg-gray-100 focus:outline-none">
               <Search className="w-5 h-5" />
             </button>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   Card,
@@ -19,16 +18,32 @@ import {
 } from '@/components/ui/tooltip';
 import { InfoIcon } from 'lucide-react';
 
-const ProfitSimulator = () => {
+interface ProfitSimulatorProps {
+  auctionValue?: number;
+  marketValue?: number;
+  evictionCost?: number;
+  debts?: number;
+  renovation?: number;
+  sellTime?: number;
+}
+
+const ProfitSimulator: React.FC<ProfitSimulatorProps> = ({
+  auctionValue = 300000,
+  marketValue = 450000,
+  evictionCost = 0,
+  debts = 0,
+  renovation = 0,
+  sellTime = 6
+}) => {
   const [formData, setFormData] = useState({
-    auctionValue: 300000,
-    marketValue: 450000,
-    evictionCost: 0,
-    debts: 0,
+    auctionValue,
+    marketValue,
+    evictionCost,
+    debts,
     itbi: 0, // Will be calculated
     commission: 0, // Will be calculated
-    renovation: 0,
-    sellTime: 6
+    renovation,
+    sellTime
   });
   
   const [results, setResults] = useState({

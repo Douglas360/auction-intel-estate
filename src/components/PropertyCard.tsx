@@ -114,12 +114,12 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
             className="w-full h-48 object-cover"
           />
           {/* Badge de desconto sem tooltip */}
-          <Badge className="absolute top-2 right-2 bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-none animate-fade-in">
+          <Badge className="absolute top-2 right-2 bg-white text-black px-3 py-1 rounded-full text-xs font-semibold shadow-none animate-fade-in border border-gray-300">
             {discount}% abaixo do mercado
           </Badge>
           {/* Badge de tipo de leilão sem tooltip */}
           <div className="absolute bottom-0 left-2 mb-2">
-            <Badge className="bg-blue-600 text-white px-2 py-0.5 rounded-full text-xs font-medium shadow-none animate-slide-in">
+            <Badge className="bg-white text-black px-2 py-0.5 rounded-full text-xs font-medium shadow-none animate-slide-in border border-gray-300">
               {auctionType || 'Venda Online Caixa'}
             </Badge>
           </div>

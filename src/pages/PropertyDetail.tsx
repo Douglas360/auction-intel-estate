@@ -467,7 +467,10 @@ const PropertyDetail = () => {
           {/* Sidebar */}
           <div className="w-full md:w-1/3 space-y-6">
             <RiskAnalyzer />
-            <ProfitSimulator />
+            <ProfitSimulator 
+              auctionValue={property.auctionPrice}
+              marketValue={property.marketPrice}
+            />
           </div>
         </div>
       </div>
