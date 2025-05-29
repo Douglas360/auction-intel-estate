@@ -21,10 +21,10 @@ const riskLabels: Record<string, string> = {
 
 // Define discount badge colors
 const getDiscountBadgeColor = (discount: number): string => {
-  if (discount > 80) return "bg-red-500 text-white";
-  if (discount >= 60) return "bg-orange-500 text-white";
-  if (discount >= 40) return "bg-yellow-500 text-black";
-  return "bg-green-500 text-white";
+  if (discount > 80) return "bg-green-500 text-white";
+  if (discount > 60) return "bg-yellow-500 text-black";
+  if (discount > 40) return "bg-orange-500 text-white";
+  return "bg-red-500 text-white";
 };
 
 interface PropertyCardProps {
