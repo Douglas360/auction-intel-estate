@@ -232,9 +232,9 @@ const Properties = () => {
           <div className="lg:col-span-3">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-semibold">
-                {filters && Object.values(filters).some(v => v !== '' && v !== null && v !== undefined && v !== 0)
-                  ? filteredTotal
-                  : totalProperties} imóveis encontrados
+                {filteredTotal !== totalProperties
+                  ? `Mostrando ${filteredTotal} de ${totalProperties} imóveis encontrados`
+                  : `${totalProperties} imóveis encontrados`}
               </h2>
               <div className="flex items-center space-x-2">
                 <span className="text-sm text-gray-500">Ordenar por:</span>
