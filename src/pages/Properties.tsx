@@ -16,6 +16,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertTriangle } from 'lucide-react';
 import useSWR from 'swr';
+import PropertyListItem from '@/components/PropertyListItem';
 
 const Properties = () => {
   const location = useLocation();
@@ -42,6 +43,7 @@ const Properties = () => {
   const [filteredTotal, setFilteredTotal] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   
   // Update URL when filters, page or sort change
   useEffect(() => {
@@ -247,36 +249,64 @@ const Properties = () => {
                   <option value="date">Data do leilão</option>
                   <option value="price">Menor preço</option>
                 </select>
+                <Button variant={viewMode === 'grid' ? 'default' : 'outline'} size="icon" onClick={() => setViewMode('grid')} title="Visualização em grid">
+                  <svg width="20" height="20" fill="none" viewBox="0 0 20 20"><rect x="3" y="3" width="6" height="6" rx="1" fill="currentColor"/><rect x="11" y="3" width="6" height="6" rx="1" fill="currentColor"/><rect x="3" y="11" width="6" height="6" rx="1" fill="currentColor"/><rect x="11" y="11" width="6" height="6" rx="1" fill="currentColor"/></svg>
+                </Button>
+                <Button variant={viewMode === 'list' ? 'default' : 'outline'} size="icon" onClick={() => setViewMode('list')} title="Visualização em lista">
+                  <svg width="20" height="20" fill="none" viewBox="0 0 20 20"><rect x="3" y="4" width="14" height="3" rx="1" fill="currentColor"/><rect x="3" y="9" width="14" height="3" rx="1" fill="currentColor"/><rect x="3" y="14" width="14" height="3" rx="1" fill="currentColor"/></svg>
+                </Button>
               </div>
             </div>
             
             {pageProperties.length > 0 ? (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {pageProperties.map((property) => (
-                    <PropertyCard
-                      key={property.id}
-                      id={property.id}
-                      title={property.title}
-                      address={property.address}
-                      city={property.city}
-                      state={property.state}
-                      imageUrl={property.images && property.images.length > 0 ? property.images[0] : undefined}
-                      auctionPrice={property.auction_price}
-                      marketPrice={property.market_price}
-                      discount={property.discount}
-                      auctionDate={property.auction_date}
-                      auctionType={property.auction_type}
-                      riskLevel={property.discount < 30 ? 'low' : property.discount < 50 ? 'medium' : 'high'}
-                      clickable={true}
-                      isFavorite={favorites.includes(property.id)}
-                      onToggleFavorite={handleToggleFavorite}
-                      allow_consorcio={property.allow_consorcio}
-                      allow_fgts={property.allow_fgts}
-                      allow_financing={property.allow_financing}
-                    />
-                  ))}
-                </div>
+                {viewMode === 'grid' ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {pageProperties.map((property) => (
+                      <PropertyCard
+                        key={property.id}
+                        id={property.id}
+                        title={property.title}
+                        address={property.address}
+                        city={property.city}
+                        state={property.state}
+                        imageUrl={property.images && property.images.length > 0 ? property.images[0] : undefined}
+                        auctionPrice={property.auction_price}
+                        marketPrice={property.market_price}
+                        discount={property.discount}
+                        auctionDate={property.auction_date}
+                        auctionType={property.auction_type}
+                        riskLevel={property.discount < 30 ? 'low' : property.discount < 50 ? 'medium' : 'high'}
+                        clickable={true}
+                        isFavorite={favorites.includes(property.id)}
+                        onToggleFavorite={handleToggleFavorite}
+                        allow_consorcio={property.allow_consorcio}
+                        allow_fgts={property.allow_fgts}
+                        allow_financing={property.allow_financing}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div>
+                    {pageProperties.map((property) => (
+                      <PropertyListItem
+                        key={property.id}
+                        id={property.id}
+                        title={property.title}
+                        address={property.address}
+                        city={property.city}
+                        state={property.state}
+                        auctionPrice={property.auction_price}
+                        marketPrice={property.market_price}
+                        discount={property.discount}
+                        auctionDate={property.auction_date}
+                        auctionType={property.auction_type}
+                        isFavorite={favorites.includes(property.id)}
+                        onToggleFavorite={handleToggleFavorite}
+                      />
+                    ))}
+                  </div>
+                )}
                 
                 {/* Pagination */}
                 {totalPages > 1 && (

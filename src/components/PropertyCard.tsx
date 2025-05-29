@@ -151,9 +151,9 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
         <CardContent className="p-4">
           <div className="flex justify-between items-start mb-2">
             <h3 className="font-bold text-lg line-clamp-1">{title || `${propertyType} Caixa em ${city}`}</h3>
-            <div className={`${riskColors[riskLevel]} text-xs px-2 py-1 rounded-md`}>
+            <div className={`${riskColors[riskLevel || 'medium']} text-xs px-2 py-1 rounded-md`}>
               Risco<br />
-              {riskLabels[riskLevel].replace(' risco', '')}
+              {(riskLabels[riskLevel] || riskLabels['medium']).replace(' risco', '')}
             </div>
           </div>
           
