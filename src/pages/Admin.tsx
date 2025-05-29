@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Navbar from '@/components/Navbar';
 import { Button } from "@/components/ui/button";
@@ -16,6 +15,7 @@ import SubscriptionPlansAdmin from './admin/SubscriptionPlans';
 import AllUsers from './admin/AllUsers';
 import DiscountCoupons from './admin/DiscountCoupons';
 import { supabase } from '@/integrations/supabase/client';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from "@/components/ui/pagination";
 
 const Admin = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -25,6 +25,9 @@ const Admin = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [properties, setProperties] = useState<any[]>([]);
   const [isLoadingProperties, setIsLoadingProperties] = useState(false);
+  const [totalProperties, setTotalProperties] = useState(0);
+  const itemsPerPage = 12;
+  const [currentPage, setCurrentPage] = useState(1);
   // Fix the auctions state type to match what comes from the database
   const [auctions, setAuctions] = useState<{
     auction_number: number;
@@ -38,6 +41,8 @@ const Admin = () => {
   const [propertyAuctions, setPropertyAuctions] = useState<Record<string, any>>({});
   const [settings, setSettings] = useState<any>(null);
   const [isLoadingSettings, setIsLoadingSettings] = useState(false);
+  
+  const searchTimeout = useRef<NodeJS.Timeout | null>(null);
   
   // Query for dashboard stats
   const { data: dashboardStats, isLoading: isLoadingStats } = useQuery({
@@ -140,17 +145,15 @@ const Admin = () => {
     if (!confirmDelete) return;
     const { error } = await supabase.from('properties').delete().eq('id', id);
     if (error) {
-      toast({
+      toast.error({
         title: "Erro",
         description: 'Erro ao excluir imóvel: ' + error.message,
-        variant: "destructive",
       });
       return;
     }
-    toast({
+    toast.success({
       title: "Sucesso",
       description: 'Imóvel excluído com sucesso.',
-      variant: "default",
     });
     await fetchProperties();
   };
@@ -172,10 +175,9 @@ const Admin = () => {
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
         const { data, error } = await supabase.storage.from('properties-images').upload(fileName, file);
         if (error) {
-          toast({
+          toast.error({
             title: "Erro",
             description: 'Erro ao fazer upload da imagem: ' + error.message,
-            variant: "destructive", 
           });
           setIsSaving(false);
           return;
@@ -217,20 +219,18 @@ const Admin = () => {
         .update(propertyData)
         .eq('id', propertyId);
       if (error) {
-        toast({
+        toast.error({
           title: "Erro",
           description: 'Erro ao atualizar imóvel: ' + error.message,
-          variant: "destructive",
         });
         setIsSaving(false);
         return;
       }
       // Remove auctions antigos
       await supabase.from('auctions').delete().eq('property_id', propertyId);
-      toast({
+      toast.success({
         title: "Sucesso",
         description: "Imóvel atualizado com sucesso!",
-        variant: "default",
       });
     } else {
       // INSERT
@@ -239,19 +239,17 @@ const Admin = () => {
         .insert([propertyData])
         .select('id');
       if (error) {
-        toast({
+        toast.error({
           title: "Erro",
           description: 'Erro ao salvar imóvel: ' + error.message,
-          variant: "destructive",
         });
         setIsSaving(false);
         return;
       }
       propertyId = data[0].id;
-      toast({
+      toast.success({
         title: "Sucesso",
         description: "Imóvel salvo com sucesso!",
-        variant: "default",
       });
     }
     
@@ -298,26 +296,41 @@ const Admin = () => {
     });
   };
   
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+    setCurrentPage(1);
+  };
+  
   useEffect(() => {
     if (activeTab === 'properties') {
-      fetchProperties();
+      if (searchTimeout.current) clearTimeout(searchTimeout.current);
+      searchTimeout.current = setTimeout(() => {
+        fetchProperties();
+      }, 400);
     }
     // eslint-disable-next-line
-  }, [activeTab]);
+  }, [searchQuery, currentPage, activeTab]);
 
   const fetchProperties = async () => {
     setIsLoadingProperties(true);
-    const { data, error } = await supabase.from('properties').select('*').order('created_at', { ascending: false });
+    const from = (currentPage - 1) * itemsPerPage;
+    const to = from + itemsPerPage - 1;
+    let query = supabase.from('properties').select('*', { count: 'exact' }).order('created_at', { ascending: false });
+    if (searchQuery.trim() !== '') {
+      // Busca case insensitive por título ou descrição
+      query = query.or(`title.ilike.%${searchQuery.trim()}%,description.ilike.%${searchQuery.trim()}%`);
+    }
+    const { data, error, count } = await query.range(from, to);
     if (error) {
-      toast({
+      toast.error({
         title: "Erro",
         description: 'Erro ao buscar imóveis: ' + error.message,
-        variant: "destructive",
       });
       setIsLoadingProperties(false);
       return;
     }
     setProperties(data || []);
+    setTotalProperties(count || 0);
     setIsLoadingProperties(false);
   };
 
@@ -325,13 +338,19 @@ const Admin = () => {
     const fetchAllAuctions = async () => {
       if (properties.length === 0) return;
       const ids = properties.map(p => p.id);
-      const { data } = await supabase
-        .from('auctions')
-        .select('property_id, auction_number, auction_date')
-        .in('property_id', ids);
+      const batchSize = 50;
+      let allAuctions = [];
+      for (let i = 0; i < ids.length; i += batchSize) {
+        const batchIds = ids.slice(i, i + batchSize);
+        const { data } = await supabase
+          .from('auctions')
+          .select('property_id, auction_number, auction_date')
+          .in('property_id', batchIds);
+        if (data) allAuctions = allAuctions.concat(data);
+      }
       // Agrupa por property_id
-      const grouped: Record<string, any> = {};
-      (data || []).forEach(a => {
+      const grouped = {};
+      allAuctions.forEach(a => {
         if (!grouped[a.property_id]) grouped[a.property_id] = [];
         grouped[a.property_id].push(a);
       });
@@ -340,16 +359,15 @@ const Admin = () => {
     fetchAllAuctions();
   }, [properties]);
 
-  const fetchSettings = async () => {
-    setIsLoadingSettings(true);
-    const { data, error } = await supabase.from('system_settings').select('*').single();
-    if (!error && data) setSettings(data);
-    setIsLoadingSettings(false);
-  };
-
   useEffect(() => {
-    if (activeTab === 'settings') fetchSettings();
-  }, [activeTab]);
+    const fetchSettings = async () => {
+      setIsLoadingSettings(true);
+      const { data, error } = await supabase.from('system_settings').select('*').single();
+      if (!error && data) setSettings(data);
+      setIsLoadingSettings(false);
+    };
+    fetchSettings();
+  }, []);
 
   const handleSettingsChange = (field: string, value: any) => {
     setSettings((prev: any) => ({ ...prev, [field]: value }));
@@ -372,19 +390,19 @@ const Admin = () => {
       .eq('id', settings.id);
     setIsLoadingSettings(false);
     if (error) {
-      toast({
+      toast.error({
         title: "Erro",
         description: 'Erro ao salvar configurações: ' + error.message,
-        variant: "destructive",
       });
     } else {
-      toast({
+      toast.success({
         title: "Sucesso",
         description: 'Configurações salvas com sucesso!',
-        variant: "default",
       });
     }
   };
+
+  const totalPages = Math.ceil((totalProperties || 0) / itemsPerPage);
   
   return (
     <div className="min-h-screen bg-gray-50">
@@ -693,7 +711,6 @@ const Admin = () => {
                                   newAuctions[idx].auction_date = e.target.value;
                                   setAuctions(newAuctions);
                                 }}
-                                required
                               />
                             </div>
                             <div>
@@ -706,7 +723,6 @@ const Admin = () => {
                                   newAuctions[idx].min_bid = e.target.value;
                                   setAuctions(newAuctions);
                                 }}
-                                required
                               />
                             </div>
                             {auctions.length > 1 && (
@@ -729,9 +745,36 @@ const Admin = () => {
                         </Button>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="images">Imagens do Imóvel</Label>
+                        <Label htmlFor="images_url">URL(s) da(s) Imagem(ns)</Label>
+                        <Textarea
+                          id="images_url"
+                          placeholder="Cole uma ou mais URLs de imagens, separadas por vírgula ou quebra de linha"
+                          value={editingProperty.images ? editingProperty.images.join('\n') : ''}
+                          onChange={e => {
+                            const value = e.target.value;
+                            // Permite separar por vírgula ou quebra de linha
+                            const urls = value
+                              .split(/\n|,/)
+                              .map(url => url.trim())
+                              .filter(url => url.length > 0);
+                            setEditingProperty({ ...editingProperty, images: urls });
+                          }}
+                          className="min-h-[60px] font-mono"
+                        />
+                        <Label htmlFor="images_upload">Upload de Imagens</Label>
+                        <Input
+                          id="images_upload"
+                          type="file"
+                          multiple
+                          accept="image/*"
+                          onChange={e => {
+                            if (e.target.files) {
+                              setImageFiles(Array.from(e.target.files));
+                            }
+                          }}
+                        />
                         {editingProperty.images && editingProperty.images.length > 0 && (
-                          <div className="flex gap-2 mb-2">
+                          <div className="flex gap-2 mt-2">
                             {editingProperty.images.map((imgUrl: string, idx: number) => (
                               <img
                                 key={idx}
@@ -742,13 +785,6 @@ const Admin = () => {
                             ))}
                           </div>
                         )}
-                        <Input
-                          id="images"
-                          type="file"
-                          multiple
-                          accept="image/*"
-                          onChange={handleImageChange}
-                        />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="auctioneer">Leiloeiro</Label>
@@ -833,7 +869,7 @@ const Admin = () => {
                           placeholder="Buscar imóveis..." 
                           className="pl-10" 
                           value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
+                          onChange={handleSearchChange}
                         />
                       </div>
                       <Button onClick={handleAddNewProperty} className="bg-auction-primary hover:bg-auction-secondary">
@@ -852,6 +888,7 @@ const Admin = () => {
                       <table className="w-full text-sm">
                         <thead className="bg-gray-50">
                           <tr>
+                            <th className="px-4 py-3 text-left">Imagem</th>
                             <th className="px-4 py-3 text-left">Título</th>
                             <th className="px-4 py-3 text-left">Tipo</th>
                             <th className="px-4 py-3 text-left">Localização</th>
@@ -866,7 +903,42 @@ const Admin = () => {
                           {properties.map((property) => (
                             <tr key={property.id} className="hover:bg-gray-50">
                               <td className="px-4 py-4">
-                                <div className="font-medium">{property.title}</div>
+                                <button
+                                  type="button"
+                                  className="focus:outline-none"
+                                  onClick={() => handleEditProperty(property)}
+                                  style={{ background: 'none', border: 'none', padding: 0, margin: 0 }}
+                                  aria-label={`Editar imóvel ${property.title}`}
+                                >
+                                  {property.images && property.images.length > 0 ? (
+                                    <img
+                                      src={property.images[0]}
+                                      alt={property.title}
+                                      className="w-14 h-14 object-cover rounded-md border hover:opacity-80 transition"
+                                    />
+                                  ) : property.image_url ? (
+                                    <img
+                                      src={property.image_url}
+                                      alt={property.title}
+                                      className="w-14 h-14 object-cover rounded-md border hover:opacity-80 transition"
+                                    />
+                                  ) : (
+                                    <div className="w-14 h-14 flex items-center justify-center bg-gray-100 text-gray-400 rounded-md border text-xs">
+                                      Sem imagem
+                                    </div>
+                                  )}
+                                </button>
+                              </td>
+                              <td className="px-4 py-4">
+                                <button
+                                  type="button"
+                                  className="font-medium text-left hover:underline focus:outline-none"
+                                  onClick={() => handleEditProperty(property)}
+                                  aria-label={`Editar imóvel ${property.title}`}
+                                  style={{ background: 'none', border: 'none', padding: 0, margin: 0 }}
+                                >
+                                  {property.title}
+                                </button>
                               </td>
                               <td className="px-4 py-4">
                                 <div className="">{property.type}</div>
@@ -925,6 +997,66 @@ const Admin = () => {
                       </table>
                     </div>
                   </div>
+                )}
+                {totalPages > 1 && (
+                  <Pagination className="mt-4">
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious
+                          href="#"
+                          onClick={e => { e.preventDefault(); if (currentPage > 1) setCurrentPage(currentPage - 1); }}
+                          aria-disabled={currentPage === 1}
+                        />
+                      </PaginationItem>
+                      {(() => {
+                        const pages = [];
+                        const showPages = [];
+                        // Sempre mostrar as 2 primeiras e 2 últimas
+                        showPages.push(1);
+                        if (totalPages > 1) showPages.push(2);
+                        if (currentPage > 4) showPages.push('start-ellipsis');
+                        // Páginas próximas da atual
+                        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+                          if (i > 2 && i < totalPages - 1) showPages.push(i);
+                        }
+                        if (currentPage < totalPages - 3) showPages.push('end-ellipsis');
+                        if (totalPages > 2) showPages.push(totalPages - 1);
+                        if (totalPages > 1) showPages.push(totalPages);
+                        // Remover duplicados e fora do range
+                        const uniquePages = Array.from(new Set(showPages)).filter(p => typeof p === 'number' && p >= 1 && p <= totalPages);
+                        let lastPage = 0;
+                        uniquePages.forEach((page, idx) => {
+                          if (lastPage && page - lastPage > 1) {
+                            pages.push(
+                              <PaginationItem key={`ellipsis-${page}-${idx}`}>
+                                <PaginationEllipsis />
+                              </PaginationItem>
+                            );
+                          }
+                          pages.push(
+                            <PaginationItem key={page}>
+                              <PaginationLink
+                                href="#"
+                                isActive={currentPage === page}
+                                onClick={e => { e.preventDefault(); setCurrentPage(page); }}
+                              >
+                                {page}
+                              </PaginationLink>
+                            </PaginationItem>
+                          );
+                          lastPage = page;
+                        });
+                        return pages;
+                      })()}
+                      <PaginationItem>
+                        <PaginationNext
+                          href="#"
+                          onClick={e => { e.preventDefault(); if (currentPage < totalPages) setCurrentPage(currentPage + 1); }}
+                          aria-disabled={currentPage === totalPages}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
                 )}
               </>
             )}
@@ -1000,7 +1132,7 @@ const Admin = () => {
                   <div>Não foi possível carregar as configurações.</div>
                 )}
                 <div className="pt-4 flex justify-end space-x-2">
-                  <Button variant="outline" onClick={fetchSettings} disabled={isLoadingSettings}>Cancelar</Button>
+                  <Button variant="outline" onClick={() => setSettings(settings)} disabled={isLoadingSettings}>Cancelar</Button>
                   <Button className="bg-auction-primary hover:bg-auction-secondary" onClick={handleSaveSettings} disabled={isLoadingSettings}>
                     Salvar Configurações
                   </Button>
