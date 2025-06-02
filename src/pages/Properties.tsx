@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import PropertyCard from '@/components/PropertyCard';
 import { Button } from '@/components/ui/button';
@@ -16,8 +15,8 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertTriangle } from 'lucide-react';
+import useSWR from 'swr';
 import PropertyListItem from '@/components/PropertyListItem';
-import { usePropertiesPage } from '@/hooks/usePropertiesPage';
 
 const Properties = () => {
   const location = useLocation();
@@ -34,52 +33,35 @@ const Properties = () => {
   );
   const [currentPage, setCurrentPage] = useState<number>(initialPage);
   const [sortBy, setSortBy] = useState<string>(initialSort);
-  const itemsPerPage = 12;
+  const itemsPerPage = 12; // Number of properties per page
   
   const [favorites, setFavorites] = useState<string[]>([]);
   const [user, setUser] = useState<any>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [pageProperties, setPageProperties] = useState<any[]>([]);
+  const [totalProperties, setTotalProperties] = useState<number>(0);
+  const [filteredTotal, setFilteredTotal] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  
-  // Use the new hook for fetching properties
-  const { properties, totalProperties, filteredTotal, isLoading, error } = usePropertiesPage(
-    filters, 
-    currentPage, 
-    itemsPerPage
-  );
-
-  // Sort properties based on sortBy
-  const sortedProperties = React.useMemo(() => {
-    if (!properties || properties.length === 0) return [];
-    
-    return [...properties].sort((a, b) => {
-      switch (sortBy) {
-        case 'discount':
-          return b.discount - a.discount;
-        case 'date':
-          return new Date(a.auction_date).getTime() - new Date(b.auction_date).getTime();
-        case 'price':
-          return a.auction_price - b.auction_price;
-        default:
-          return 0;
-      }
-    });
-  }, [properties, sortBy]);
   
   // Update URL when filters, page or sort change
   useEffect(() => {
     const queryParams = new URLSearchParams(location.search);
     
+    // Update pagination param
     if (currentPage > 1) {
       queryParams.set('page', currentPage.toString());
     } else {
       queryParams.delete('page');
     }
     
+    // Update sort param
     if (sortBy) {
       queryParams.set('sort', sortBy);
     }
     
+    // Update URL without reloading page
     const newUrl = `${location.pathname}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
     navigate(newUrl, { replace: true });
   }, [currentPage, sortBy, location.pathname, navigate]);
@@ -99,18 +81,92 @@ const Properties = () => {
     fetchUser();
   }, []);
 
+  // Função para buscar imóveis paginados direto do Supabase
+  const fetchPropertiesPage = async (filters: any, page = 1, pageSize = 12) => {
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+    let query = supabase.from('properties').select('*', { count: 'exact' });
+    if (filters.state && filters.state !== '') query = query.eq('state', filters.state);
+    if (filters.location && filters.location !== '') {
+      query = query.or(`city.ilike.%${filters.location}%,address.ilike.%${filters.location}%,type.ilike.%${filters.location}%,state.ilike.%${filters.location}%`);
+    }
+    if (filters.propertyType && filters.propertyType !== '') query = query.eq('type', filters.propertyType);
+    if (filters.auctionType && filters.auctionType !== '') query = query.eq('auction_type', filters.auctionType);
+    if (filters.discount && filters.discount > 0) query = query.gte('discount', filters.discount);
+    if (filters.minPrice && filters.minPrice > 0) query = query.gte('auction_price', filters.minPrice);
+    if (filters.maxPrice && filters.maxPrice > 0) query = query.lte('auction_price', filters.maxPrice);
+    if (filters.bedrooms && filters.bedrooms !== '') query = query.gte('bedrooms', Number(filters.bedrooms));
+    if (filters.garage && filters.garage !== '') query = query.gte('garage', Number(filters.garage));
+    if (filters.allow_financing) query = query.eq('allow_financing', true);
+    if (filters.allow_consorcio) query = query.eq('allow_consorcio', true);
+    if (filters.allow_fgts) query = query.eq('allow_fgts', true);
+    if (filters.allow_parcelamento) query = query.eq('allow_parcelamento', true);
+    query = query.order('created_at', { ascending: false }).range(from, to);
+    const { data, error, count } = await query;
+    if (error) throw error;
+    return { data, count };
+  };
+
+  // SWR para buscar imóveis
+  const { data: swrData, error: swrError, isValidating } = useSWR(
+    [filters, currentPage, itemsPerPage],
+    ([filters, page, pageSize]) => fetchPropertiesPage(filters, page, pageSize),
+    { revalidateOnFocus: false }
+  );
+
+  useEffect(() => {
+    if (swrData) {
+      let sorted = swrData.data || [];
+      if (filters && filters.riskLevel && filters.riskLevel !== '') {
+        const riskMap = { baixo: 'low', médio: 'medium', alto: 'high' };
+        const selectedRisk = riskMap[filters.riskLevel] || filters.riskLevel;
+        sorted = sorted.filter(property => {
+          let riskLevel = 'medium';
+          if (property.discount < 30) riskLevel = 'low';
+          else if (property.discount >= 30 && property.discount < 50) riskLevel = 'medium';
+          else if (property.discount >= 50) riskLevel = 'high';
+          return riskLevel === selectedRisk;
+        });
+      }
+      if (sortBy) {
+        sorted = [...sorted].sort((a, b) => {
+          switch (sortBy) {
+            case 'discount':
+              return b.discount - a.discount;
+            case 'date':
+              return new Date(a.auction_date).getTime() - new Date(b.auction_date).getTime();
+            case 'price':
+              return a.auction_price - b.auction_price;
+            default:
+              return 0;
+          }
+        });
+      }
+      setPageProperties(sorted);
+      setTotalProperties(swrData.count || 0);
+      setFilteredTotal(sorted.length);
+      setIsLoading(false);
+    } else if (swrError) {
+      setError('Não foi possível carregar os imóveis. Por favor, tente novamente mais tarde.');
+      setIsLoading(false);
+    } else if (isValidating) {
+      setIsLoading(true);
+      setError(null);
+    }
+  }, [swrData, swrError, isValidating, filters, sortBy]);
+
   const totalPages = Math.ceil(totalProperties / itemsPerPage);
   
   // Handle search
   const handleSearch = (newFilters: any) => {
     setFilters(newFilters);
-    setCurrentPage(1);
+    setCurrentPage(1); // Reset to first page when filters change
   };
   
   // Handle page change
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
-    window.scrollTo(0, 0);
+    window.scrollTo(0, 0); // Scroll to top when page changes
   };
   
   // Handle sort change
@@ -202,11 +258,11 @@ const Properties = () => {
               </div>
             </div>
             
-            {sortedProperties.length > 0 ? (
+            {pageProperties.length > 0 ? (
               <>
                 {viewMode === 'grid' ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {sortedProperties.map((property) => (
+                    {pageProperties.map((property) => (
                       <PropertyCard
                         key={property.id}
                         id={property.id}
@@ -232,7 +288,7 @@ const Properties = () => {
                   </div>
                 ) : (
                   <div>
-                    {sortedProperties.map((property) => (
+                    {pageProperties.map((property) => (
                       <PropertyListItem
                         key={property.id}
                         id={property.id}
@@ -257,6 +313,7 @@ const Properties = () => {
                   <div className="mt-8">
                     <Pagination>
                       <PaginationContent>
+                        {/* Previous button */}
                         <PaginationItem>
                           <PaginationPrevious 
                             href="#" 
@@ -268,8 +325,12 @@ const Properties = () => {
                           />
                         </PaginationItem>
                         
+                        {/* Page numbers */}
                         {Array.from({ length: totalPages }, (_, i) => i + 1)
                           .filter(page => {
+                            // Show first and last page always
+                            // For current page, show +/- 1 page
+                            // Otherwise show ellipsis
                             return (
                               page === 1 || 
                               page === totalPages || 
@@ -302,6 +363,7 @@ const Properties = () => {
                           })
                         }
                         
+                        {/* Next button */}
                         <PaginationItem>
                           <PaginationNext 
                             href="#"
