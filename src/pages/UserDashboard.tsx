@@ -48,7 +48,8 @@ const UserDashboard = () => {
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
     
-    let query = supabase.from('properties').select('*', { count: 'exact' });
+    let queryBuilder = supabase.from('properties');
+    let query = queryBuilder.select('*', { count: 'exact' });
     
     // Apply filters step by step to avoid complex type inference
     if (filters.state && filters.state !== '') {
@@ -174,9 +175,9 @@ const UserDashboard = () => {
         const selectedRisk = riskMap[filters.riskLevel] || filters.riskLevel;
         sorted = sorted.filter(property => {
           let riskLevel = 'medium';
-          if (property.discount < 30) riskLevel = 'low';
-          else if (property.discount >= 30 && property.discount < 50) riskLevel = 'medium';
-          else if (property.discount >= 50) riskLevel = 'high';
+          if (property.discount && property.discount < 30) riskLevel = 'low';
+          else if (property.discount && property.discount >= 30 && property.discount < 50) riskLevel = 'medium';
+          else if (property.discount && property.discount >= 50) riskLevel = 'high';
           return riskLevel === selectedRisk;
         });
       }
@@ -184,11 +185,11 @@ const UserDashboard = () => {
         sorted = [...sorted].sort((a, b) => {
           switch (sortBy) {
             case 'discount':
-              return b.discount - a.discount;
+              return (b.discount || 0) - (a.discount || 0);
             case 'date':
-              return new Date(a.auction_date).getTime() - new Date(b.auction_date).getTime();
+              return new Date(a.auction_date || '').getTime() - new Date(b.auction_date || '').getTime();
             case 'price':
-              return a.auction_price - b.auction_price;
+              return (a.auction_price || 0) - (b.auction_price || 0);
             default:
               return 0;
           }
@@ -327,13 +328,13 @@ const UserDashboard = () => {
                           address={property.address}
                           city={property.city}
                           state={property.state}
-                          imageUrl={property.imageUrl || (property.images && property.images.length > 0 ? property.images[0] : undefined)}
-                          auctionPrice={property.auctionPrice ?? property.auction_price}
-                          marketPrice={property.marketPrice ?? property.market_price}
+                          imageUrl={Array.isArray(property.images) && property.images.length > 0 ? property.images[0] : undefined}
+                          auctionPrice={property.auction_price}
+                          marketPrice={property.market_price}
                           discount={property.discount}
-                          auctionDate={property.auctionDate ?? property.auction_date}
-                          auctionType={property.auctionType ?? property.auction_type}
-                          riskLevel={property.riskLevel ?? (property.discount < 30 ? 'low' : property.discount < 50 ? 'medium' : 'high')}
+                          auctionDate={property.auction_date}
+                          auctionType={property.auction_type}
+                          riskLevel={property.discount && property.discount < 30 ? 'low' : property.discount && property.discount < 50 ? 'medium' : 'high'}
                           clickable={true}
                           isFavorite={favorites.includes(property.id)}
                           onToggleFavorite={handleToggleFavorite}
@@ -353,11 +354,11 @@ const UserDashboard = () => {
                           address={property.address}
                           city={property.city}
                           state={property.state}
-                          auctionPrice={property.auctionPrice}
-                          marketPrice={property.marketPrice}
+                          auctionPrice={property.auction_price}
+                          marketPrice={property.market_price}
                           discount={property.discount}
-                          auctionDate={property.auctionDate}
-                          auctionType={property.auctionType}
+                          auctionDate={property.auction_date}
+                          auctionType={property.auction_type}
                           isFavorite={favorites.includes(property.id)}
                           onToggleFavorite={handleToggleFavorite}
                         />
