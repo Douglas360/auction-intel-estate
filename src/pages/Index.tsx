@@ -59,6 +59,15 @@ const Index = () => {
     fetchUser();
   }, []);
 
+  useEffect(() => {
+    const fetchShowPlansSection = async () => {
+      const { data, error } = await supabase.from('system_settings').select('show_plans_section').single();
+      if (!error && data) setShowPlans(!!data.show_plans_section);
+      else setShowPlans(false);
+    };
+    fetchShowPlansSection();
+  }, []);
+
   const handleToggleFavorite = async (propertyId: string) => {
     if (!user) {
       setShowAuthModal(true);
@@ -81,7 +90,7 @@ const Index = () => {
 
   return (
     <>
-      <Navbar />
+      <Navbar showPlansSection={showPlans} />
       <div className="pt-20">
         {/* Hero section with video background */}
         <div className="relative bg-gray-900 text-white">
@@ -126,13 +135,6 @@ const Index = () => {
               </Button>
               <Button onClick={() => navigate('/simulator')} variant="secondary">
                 Simulador de Lucro
-              </Button>
-              <Button 
-                onClick={() => setShowPlans(!showPlans)} 
-                variant={showPlans ? "default" : "outline"} 
-                className={showPlans ? "bg-auction-primary hover:bg-auction-secondary" : "bg-white text-auction-primary hover:bg-gray-100"}
-              >
-                {showPlans ? "Ocultar Planos" : "Exibir Planos"}
               </Button>
             </div>
           </div>

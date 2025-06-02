@@ -385,6 +385,7 @@ const Admin = () => {
         scraping_sites: settings.scraping_sites,
         notification_email: settings.notification_email,
         notification_template: settings.notification_template,
+        show_plans_section: settings.show_plans_section,
         updated_at: new Date().toISOString(),
       })
       .eq('id', settings.id);
@@ -1127,13 +1128,27 @@ const Admin = () => {
                         </div>
                       </div>
                     </div>
+                    <div className="space-y-2">
+                      <h3 className="text-lg font-medium">Configurações Gerais</h3>
+                      <div className="flex items-center space-x-3 p-4 border rounded mb-4">
+                        <input
+                          id="show-plans-section"
+                          type="checkbox"
+                          checked={!!settings.show_plans_section}
+                          onChange={e => handleSettingsChange('show_plans_section', e.target.checked)}
+                          className="form-checkbox h-5 w-5 text-auction-primary"
+                        />
+                        <label htmlFor="show-plans-section" className="font-medium">Exibir Seção de Planos</label>
+                        <span className="text-gray-500 text-sm ml-2">Controla se a seção de planos aparece na página inicial e no menu</span>
+                      </div>
+                    </div>
                   </>
                 ) : (
                   <div>Não foi possível carregar as configurações.</div>
                 )}
                 <div className="pt-4 flex justify-end space-x-2">
                   <Button variant="outline" onClick={() => setSettings(settings)} disabled={isLoadingSettings}>Cancelar</Button>
-                  <Button className="bg-auction-primary hover:bg-auction-secondary" onClick={handleSaveSettings} disabled={isLoadingSettings}>
+                  <Button className="!bg-auction-primary !text-white hover:!bg-auction-secondary" onClick={handleSaveSettings} disabled={isLoadingSettings}>
                     Salvar Configurações
                   </Button>
                 </div>
