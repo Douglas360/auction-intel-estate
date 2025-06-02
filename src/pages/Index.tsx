@@ -165,9 +165,23 @@ const Index = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
               {properties.map((property) => (
                 <PropertyCard 
-                  key={property.id} 
-                  property={property}
-                  formatCurrency={formatCurrency}
+                  key={property.id}
+                  id={property.id}
+                  title={property.title}
+                  address={property.address}
+                  city={property.city}
+                  state={property.state}
+                  imageUrl={property.images && property.images.length > 0 ? property.images[0] : undefined}
+                  auctionPrice={property.auction_price}
+                  marketPrice={property.market_price}
+                  discount={property.discount || 0}
+                  auctionDate={property.auction_date || ''}
+                  auctionType={property.auction_type}
+                  riskLevel={property.discount && property.discount < 30 ? 'low' : property.discount && property.discount < 50 ? 'medium' : 'high'}
+                  clickable={true}
+                  allow_consorcio={property.allow_consorcio}
+                  allow_fgts={property.allow_fgts}
+                  allow_financing={property.allow_financing}
                 />
               ))}
             </div>

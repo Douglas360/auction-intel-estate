@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import PropertyCard from '@/components/PropertyCard';
@@ -81,30 +82,77 @@ const Properties = () => {
     fetchUser();
   }, []);
 
-  // Função para buscar imóveis paginados direto do Supabase
-  const fetchPropertiesPage = async (filters: any, page = 1, pageSize = 12) => {
+  // Simplified fetchPropertiesPage function with explicit types
+  const fetchPropertiesPage = async (filters: any, page = 1, pageSize = 12): Promise<{ data: any[]; count: number }> => {
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
-    let query = supabase.from('properties').select('*', { count: 'exact' });
-    if (filters.state && filters.state !== '') query = query.eq('state', filters.state);
-    if (filters.location && filters.location !== '') {
-      query = query.or(`city.ilike.%${filters.location}%,address.ilike.%${filters.location}%,type.ilike.%${filters.location}%,state.ilike.%${filters.location}%`);
+    
+    // Start with a basic query
+    let queryBuilder = supabase
+      .from('properties')
+      .select('*', { count: 'exact' });
+
+    // Apply filters step by step
+    if (filters.state && filters.state !== '') {
+      queryBuilder = queryBuilder.eq('state', filters.state);
     }
-    if (filters.propertyType && filters.propertyType !== '') query = query.eq('type', filters.propertyType);
-    if (filters.auctionType && filters.auctionType !== '') query = query.eq('auction_type', filters.auctionType);
-    if (filters.discount && filters.discount > 0) query = query.gte('discount', filters.discount);
-    if (filters.minPrice && filters.minPrice > 0) query = query.gte('auction_price', filters.minPrice);
-    if (filters.maxPrice && filters.maxPrice > 0) query = query.lte('auction_price', filters.maxPrice);
-    if (filters.bedrooms && filters.bedrooms !== '') query = query.gte('bedrooms', Number(filters.bedrooms));
-    if (filters.garage && filters.garage !== '') query = query.gte('garage', Number(filters.garage));
-    if (filters.allow_financing) query = query.eq('allow_financing', true);
-    if (filters.allow_consorcio) query = query.eq('allow_consorcio', true);
-    if (filters.allow_fgts) query = query.eq('allow_fgts', true);
-    if (filters.allow_parcelamento) query = query.eq('allow_parcelamento', true);
-    query = query.order('created_at', { ascending: false }).range(from, to);
-    const { data, error, count } = await query;
+    
+    if (filters.location && filters.location !== '') {
+      queryBuilder = queryBuilder.or(`city.ilike.%${filters.location}%,address.ilike.%${filters.location}%,type.ilike.%${filters.location}%,state.ilike.%${filters.location}%`);
+    }
+    
+    if (filters.propertyType && filters.propertyType !== '') {
+      queryBuilder = queryBuilder.eq('type', filters.propertyType);
+    }
+    
+    if (filters.auctionType && filters.auctionType !== '') {
+      queryBuilder = queryBuilder.eq('auction_type', filters.auctionType);
+    }
+    
+    if (filters.discount && filters.discount > 0) {
+      queryBuilder = queryBuilder.gte('discount', filters.discount);
+    }
+    
+    if (filters.minPrice && filters.minPrice > 0) {
+      queryBuilder = queryBuilder.gte('auction_price', filters.minPrice);
+    }
+    
+    if (filters.maxPrice && filters.maxPrice > 0) {
+      queryBuilder = queryBuilder.lte('auction_price', filters.maxPrice);
+    }
+    
+    if (filters.bedrooms && filters.bedrooms !== '') {
+      queryBuilder = queryBuilder.gte('bedrooms', Number(filters.bedrooms));
+    }
+    
+    if (filters.garage && filters.garage !== '') {
+      queryBuilder = queryBuilder.gte('garage', Number(filters.garage));
+    }
+    
+    if (filters.allow_financing) {
+      queryBuilder = queryBuilder.eq('allow_financing', true);
+    }
+    
+    if (filters.allow_consorcio) {
+      queryBuilder = queryBuilder.eq('allow_consorcio', true);
+    }
+    
+    if (filters.allow_fgts) {
+      queryBuilder = queryBuilder.eq('allow_fgts', true);
+    }
+    
+    if (filters.allow_parcelamento) {
+      queryBuilder = queryBuilder.eq('allow_parcelamento', true);
+    }
+
+    // Apply ordering and range
+    const { data, error, count } = await queryBuilder
+      .order('created_at', { ascending: false })
+      .range(from, to);
+
     if (error) throw error;
-    return { data, count };
+    
+    return { data: data || [], count: count || 0 };
   };
 
   // SWR para buscar imóveis
