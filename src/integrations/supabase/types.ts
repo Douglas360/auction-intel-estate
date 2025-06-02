@@ -386,6 +386,7 @@ export type Database = {
           openai_api_key: string | null
           scraping_interval: number | null
           scraping_sites: string | null
+          show_plans_section: boolean | null
           updated_at: string | null
         }
         Insert: {
@@ -397,6 +398,7 @@ export type Database = {
           openai_api_key?: string | null
           scraping_interval?: number | null
           scraping_sites?: string | null
+          show_plans_section?: boolean | null
           updated_at?: string | null
         }
         Update: {
@@ -408,6 +410,7 @@ export type Database = {
           openai_api_key?: string | null
           scraping_interval?: number | null
           scraping_sites?: string | null
+          show_plans_section?: boolean | null
           updated_at?: string | null
         }
         Relationships: []

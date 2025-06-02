@@ -21,6 +21,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { usePropertyTypeStats } from '@/hooks/usePropertyTypeStats';
 
 export const defaultFilters = {
   location: '',
@@ -41,6 +42,7 @@ export const defaultFilters = {
 
 const SearchFilters = ({ filters, setFilters, onSearch }: { filters: any, setFilters: (filters: any) => void, onSearch: (filters: any) => void }) => {
   const [localFilters, setLocalFilters] = useState(filters);
+  const { stats } = usePropertyTypeStats();
 
   useEffect(() => {
     setLocalFilters(filters);
@@ -79,6 +81,11 @@ const SearchFilters = ({ filters, setFilters, onSearch }: { filters: any, setFil
       style: 'currency',
       currency: 'BRL'
     }).format(value);
+  };
+
+  const getPropertyTypeCount = (type: string) => {
+    const stat = stats.find(s => s.type === type);
+    return stat ? stat.count : 0;
   };
 
   return (
@@ -130,11 +137,19 @@ const SearchFilters = ({ filters, setFilters, onSearch }: { filters: any, setFil
                 <SelectValue placeholder="Selecione o tipo" />
               </SelectTrigger>
               <SelectContent>
-                {propertyTypes.map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {type}
-                  </SelectItem>
-                ))}
+                {propertyTypes.map((type) => {
+                  const count = getPropertyTypeCount(type);
+                  return (
+                    <SelectItem key={type} value={type}>
+                      <div className="flex justify-between items-center w-full">
+                        <span>{type}</span>
+                        <span className="ml-2 px-2 py-1 bg-purple-500 text-white text-xs rounded-full">
+                          {count}
+                        </span>
+                      </div>
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>
