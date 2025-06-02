@@ -13,12 +13,13 @@ import { useProperties } from '@/hooks/useProperties';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertTriangle } from 'lucide-react';
+import { useSystemSettings } from '@/context/SystemSettingsContext';
 
 const Index = () => {
   const [isYearly, setIsYearly] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [checkoutLoadingPlanId, setCheckoutLoadingPlanId] = useState<string | null>(null);
-  const [showPlans, setShowPlans] = useState(true);
+  const { showPlansSection } = useSystemSettings();
   const navigate = useNavigate();
   const { 
     plans: activePlans, 
@@ -41,7 +42,7 @@ const Index = () => {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    navigate(`/properties?q=${encodeURIComponent(searchQuery)}`);
+    navigate(`/imovel?q=${encodeURIComponent(searchQuery)}`);
   };
 
   useEffect(() => {
@@ -57,15 +58,6 @@ const Index = () => {
       }
     };
     fetchUser();
-  }, []);
-
-  useEffect(() => {
-    const fetchShowPlansSection = async () => {
-      const { data, error } = await supabase.from('system_settings').select('show_plans_section').single();
-      if (!error && data) setShowPlans(!!data.show_plans_section);
-      else setShowPlans(false);
-    };
-    fetchShowPlansSection();
   }, []);
 
   const handleToggleFavorite = async (propertyId: string) => {
@@ -90,7 +82,7 @@ const Index = () => {
 
   return (
     <>
-      <Navbar showPlansSection={showPlans} />
+      <Navbar />
       <div className="pt-20">
         {/* Hero section with video background */}
         <div className="relative bg-gray-900 text-white">
@@ -130,7 +122,7 @@ const Index = () => {
             </form>
             
             <div className="flex space-x-4">
-              <Button onClick={() => navigate('/properties')} variant="outline" className="bg-white text-gray-900 hover:bg-gray-100">
+              <Button onClick={() => navigate('/imovel')} variant="outline" className="bg-white text-gray-900 hover:bg-gray-100">
                 Ver Todos Imóveis
               </Button>
               <Button onClick={() => navigate('/simulator')} variant="secondary">
@@ -141,7 +133,7 @@ const Index = () => {
         </div>
         
         {/* Subscription plan section - conditionally rendered */}
-        {showPlans && (
+        {showPlansSection && (
           <div className="bg-gray-50 py-16">
             <div className="container mx-auto px-4">
               <div className="text-center max-w-3xl mx-auto mb-10">
@@ -254,7 +246,7 @@ const Index = () => {
               )}
             </div>
             <div className="text-center mt-8">
-              <Button variant="default" onClick={() => navigate('/properties')} className="text-lg">
+              <Button variant="default" onClick={() => navigate('/imovel')} className="text-lg">
                 Ver Todos os Imóveis <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </div>

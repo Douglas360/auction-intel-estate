@@ -3,8 +3,10 @@ import { Button } from '@/components/ui/button';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, Bell, User, Settings } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useSystemSettings } from '@/context/SystemSettingsContext';
 
-const Navbar = ({ showPlansSection = true }) => {
+const Navbar = () => {
+  const { showPlansSection } = useSystemSettings();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
@@ -52,7 +54,7 @@ const Navbar = ({ showPlansSection = true }) => {
             </Link>
           </div>
           <div className="hidden md:flex flex-1 items-center justify-center space-x-4">
-            <Link to="/properties" className="nav-link">Imóveis</Link>
+            <Link to="/imovel" className="nav-link">Imóveis</Link>
             <Link to="/simulator" className="nav-link">Simulador</Link>
             {showPlansSection && (
               <Link to="/pricing" className="nav-link">Planos</Link>

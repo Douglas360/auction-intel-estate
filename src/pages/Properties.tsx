@@ -3,7 +3,7 @@ import Navbar from '@/components/Navbar';
 import PropertyCard from '@/components/PropertyCard';
 import { Button } from '@/components/ui/button';
 import SearchFilters, { defaultFilters } from '@/components/SearchFilters';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   Pagination,
   PaginationContent,
@@ -21,6 +21,7 @@ import PropertyListItem from '@/components/PropertyListItem';
 const Properties = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { state: stateParam } = useParams();
   const params = new URLSearchParams(location.search);
   const initialQuery = params.get('q') || '';
   
@@ -29,7 +30,11 @@ const Properties = () => {
   const initialSort = params.get('sort') || 'discount';
   
   const [filters, setFilters] = useState<any>(
-    initialQuery ? { ...defaultFilters, location: initialQuery } : { ...defaultFilters }
+    stateParam
+      ? { ...defaultFilters, state: stateParam.toUpperCase() }
+      : initialQuery
+        ? { ...defaultFilters, location: initialQuery }
+        : { ...defaultFilters }
   );
   const [currentPage, setCurrentPage] = useState<number>(initialPage);
   const [sortBy, setSortBy] = useState<string>(initialSort);

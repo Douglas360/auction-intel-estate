@@ -22,6 +22,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { usePropertyTypeStats } from '@/hooks/usePropertyTypeStats';
+import { useNavigate } from 'react-router-dom';
 
 export const defaultFilters = {
   location: '',
@@ -43,6 +44,7 @@ export const defaultFilters = {
 const SearchFilters = ({ filters, setFilters, onSearch }: { filters: any, setFilters: (filters: any) => void, onSearch: (filters: any) => void }) => {
   const [localFilters, setLocalFilters] = useState(filters);
   const { stats } = usePropertyTypeStats();
+  const navigate = useNavigate();
 
   useEffect(() => {
     setLocalFilters(filters);
@@ -59,6 +61,9 @@ const SearchFilters = ({ filters, setFilters, onSearch }: { filters: any, setFil
     e.preventDefault();
     setFilters(localFilters);
     onSearch(localFilters);
+    if (localFilters.state) {
+      navigate(`/imovel/${localFilters.state.toLowerCase()}${window.location.search}`);
+    }
   };
 
   const handleReset = () => {

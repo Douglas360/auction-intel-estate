@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { MapPin, Calendar, Heart as HeartIcon } from "lucide-react";
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
+import { slugify } from '@/utils/slugify';
 
 // Define risk level colors
 const riskColors: Record<string, string> = {
@@ -92,8 +93,8 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
     const currentSearch = location.search;
     
     // Encode the current path+search as a param to return to later
-    return `/properties/${id}?from=${encodeURIComponent(`${currentPath}${currentSearch}`)}`;
-  }, [id, location.pathname, location.search]);
+    return `/imovel/${state}/${slugify(city)}/${id}?from=${encodeURIComponent(`${currentPath}${currentSearch}`)}`;
+  }, [id, state, city, location.pathname, location.search]);
   
   // Generate property type from title or use a default
   const propertyType = title?.includes('Apartamento') ? 'Apartamento' : 'Casa';

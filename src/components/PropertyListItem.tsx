@@ -2,6 +2,7 @@ import React from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Heart as HeartIcon } from "lucide-react";
+import { slugify } from '@/utils/slugify';
 
 const getDiscountBadgeColor = (discount: number): string => {
   if (discount > 80) return "bg-green-500 text-white";
@@ -61,7 +62,7 @@ const PropertyListItem: React.FC<PropertyListItemProps> = ({
           <HeartIcon className={`w-6 h-6 ${isFavorite ? 'fill-red-600 text-red-600' : 'text-gray-400'}`} />
         </Button>
         <Button asChild>
-          <a href={`/properties/${id}`}>Ver detalhes</a>
+          <a href={`/imovel/${state}/${slugify(city)}/${id}`}>Ver detalhes</a>
         </Button>
       </div>
     </div>

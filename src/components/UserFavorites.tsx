@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
 import { ProfitSimulatorDrawer } from './simulator/ProfitSimulatorDrawer';
 import { toast } from '@/components/ui/use-toast';
+import { slugify } from '@/utils/slugify';
 
 interface Property {
   id: string;
@@ -103,7 +104,7 @@ const UserFavorites = ({ favorites, onRemoveFavorite }: UserFavoritesProps) => {
                 
                 <div className="flex space-x-2 mt-4">
                   <Button size="sm" asChild>
-                    <Link to={`/properties/${property.id}`}>Ver Detalhes</Link>
+                    <Link to={`/imovel/${property.state}/${slugify(property.city)}/${property.id}`}>Ver Detalhes</Link>
                   </Button>
                   <Button size="sm" variant="outline" className="flex items-center" onClick={() => { setSimulatorProperty(property); setSimulatorOpen(true); }}>
                     <Calculator className="h-4 w-4 mr-1" />
