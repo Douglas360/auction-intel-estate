@@ -1,406 +1,377 @@
-
 import React, { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useNavigate, Link } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
-import PropertyCard from '@/components/PropertyCard';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Search, MapPin, TrendingUp, Shield, Clock, Users, Eye, Calculator, Target } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Search, ArrowRight } from "lucide-react";
+import { useSubscription, SubscriptionPlan } from '@/hooks/useSubscription';
+import SubscriptionPlanCard from "@/components/subscription/SubscriptionPlanCard";
+import PricingToggle from "@/components/subscription/PricingToggle";
+import PropertyCard from "@/components/PropertyCard";
+import { useProperties } from '@/hooks/useProperties';
 import { supabase } from '@/integrations/supabase/client';
-import { Link } from 'react-router-dom';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertTriangle } from 'lucide-react';
 
 const Index = () => {
+  const [isYearly, setIsYearly] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [showPlansSection, setShowPlansSection] = useState(true);
+  const [checkoutLoadingPlanId, setCheckoutLoadingPlanId] = useState<string | null>(null);
+  const [showPlans, setShowPlans] = useState(true);
+  const navigate = useNavigate();
+  const { 
+    plans: activePlans, 
+    subscriptionStatus,
+    isLoading,
+    subscribeToPlan 
+  } = useSubscription();
+  const { featuredProperties, isLoading: isLoadingProperties, topProfitProperties, lowestPriceProperties, highestPriceProperties } = useProperties();
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const [user, setUser] = useState<any>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
-  // Fetch properties
-  const { data: properties = [], isLoading: isLoadingProperties } = useQuery({
-    queryKey: ['properties'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('properties')
-        .select('*')
-        .eq('status', 'active')
-        .order('created_at', { ascending: false })
-        .limit(6);
-      
-      if (error) throw error;
-      return data;
-    }
-  });
+  const isCurrentPlan = (planId: string) => {
+    return subscriptionStatus?.plan?.id === planId;
+  };
 
-  // Fetch plans visibility setting
-  useEffect(() => {
-    const fetchPlansVisibility = async () => {
-      const { data } = await supabase
-        .from('system_settings')
-        .select('show_plans_section')
-        .single();
-      
-      if (data) {
-        setShowPlansSection(data.show_plans_section ?? true);
-      }
-    };
-    
-    fetchPlansVisibility();
-  }, []);
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(value);
+  const handleSubscribe = (planId: string) => {
+    navigate(`/subscribe/${planId}`);
   };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    // Redirect to properties page with search query
-    window.location.href = `/properties?search=${encodeURIComponent(searchQuery)}`;
+    navigate(`/properties?q=${encodeURIComponent(searchQuery)}`);
+  };
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user || null);
+      if (session?.user) {
+        const { data: favs } = await supabase
+          .from('favorites')
+          .select('property_id')
+          .eq('user_id', session.user.id);
+        setFavorites(favs ? favs.map(f => f.property_id) : []);
+      }
+    };
+    fetchUser();
+  }, []);
+
+  const handleToggleFavorite = async (propertyId: string) => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+    if (favorites.includes(propertyId)) {
+      await supabase
+        .from('favorites')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('property_id', propertyId);
+      setFavorites(favorites.filter(id => id !== propertyId));
+    } else {
+      await supabase
+        .from('favorites')
+        .insert({ user_id: user.id, property_id: propertyId });
+      setFavorites([...favorites, propertyId]);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <>
       <Navbar />
-      
-      {/* Hero Section */}
-      <section className="bg-gradient-to-r from-auction-primary to-auction-secondary text-white pt-20">
-        <div className="container mx-auto px-4 py-16 max-w-7xl">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
-                Encontre Imóveis em Leilão com Até{' '}
-                <span className="text-yellow-300">70% de Desconto</span>
-              </h1>
-              <p className="text-xl mb-8 opacity-90">
-                A maior plataforma de leilões imobiliários do Brasil. Oportunidades únicas para investidores e compradores.
-              </p>
-              <form onSubmit={handleSearch} className="flex gap-3 mb-8">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-                  <Input
-                    type="text"
-                    placeholder="Busque por cidade, tipo de imóvel..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 py-3 text-lg bg-white text-gray-900"
-                  />
-                </div>
-                <Button type="submit" size="lg" className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold px-8">
-                  Buscar
-                </Button>
-              </form>
-              <div className="flex gap-6 text-sm">
-                <div className="flex items-center gap-2">
-                  <Shield className="w-5 h-5" />
-                  <span>100% Seguro</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="w-5 h-5" />
-                  <span>Atualizado Diariamente</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Users className="w-5 h-5" />
-                  <span>+50 mil usuários</span>
-                </div>
-              </div>
-            </div>
-            <div className="lg:text-right">
-              <img 
-                src="/placeholder.svg" 
-                alt="Casa em leilão" 
-                className="w-full max-w-md mx-auto rounded-lg shadow-2xl"
-              />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Stats Section */}
-      <section className="py-16 bg-white">
-        <div className="container mx-auto px-4 max-w-7xl">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div className="text-center">
-              <div className="text-4xl font-bold text-auction-primary mb-2">15,847</div>
-              <div className="text-gray-600">Imóveis Disponíveis</div>
-            </div>
-            <div className="text-center">
-              <div className="text-4xl font-bold text-auction-primary mb-2">R$ 2.1B</div>
-              <div className="text-gray-600">Em Negócios Fechados</div>
-            </div>
-            <div className="text-center">
-              <div className="text-4xl font-bold text-auction-primary mb-2">45%</div>
-              <div className="text-gray-600">Desconto Médio</div>
-            </div>
-            <div className="text-center">
-              <div className="text-4xl font-bold text-auction-primary mb-2">98%</div>
-              <div className="text-gray-600">Clientes Satisfeitos</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Featured Properties */}
-      <section className="py-16 bg-gray-50">
-        <div className="container mx-auto px-4 max-w-7xl">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Oportunidades em Destaque</h2>
-            <p className="text-xl text-gray-600">Os melhores negócios selecionados pela nossa equipe</p>
+      <div className="pt-20">
+        {/* Hero section with video background */}
+        <div className="relative bg-gray-900 text-white">
+          {/* Image Background */}
+          <div className="absolute inset-0 overflow-hidden">
+            <img
+              src="https://images.unsplash.com/photo-1497366811353-6870744d04b2"
+              alt="Background"
+              className="absolute w-full h-full object-cover"
+              style={{ zIndex: 1 }}
+            />
+            <div className="absolute inset-0 bg-black opacity-60" style={{ zIndex: 2 }}></div>
           </div>
           
-          {isLoadingProperties ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="bg-white rounded-lg shadow-sm p-6 animate-pulse">
-                  <div className="w-full h-48 bg-gray-200 rounded-lg mb-4"></div>
-                  <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                  <div className="h-4 bg-gray-200 rounded mb-2 w-3/4"></div>
-                  <div className="h-6 bg-gray-200 rounded w-1/2"></div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-              {properties.map((property) => (
-                <PropertyCard 
-                  key={property.id} 
-                  property={property}
-                  formatCurrency={formatCurrency}
+          <div className="relative container mx-auto px-4 py-24 flex flex-col items-center text-center" style={{ zIndex: 3 }}>
+            <h1 className="text-4xl md:text-5xl font-extrabold mb-6 max-w-4xl">
+              Encontre as melhores oportunidades de imóveis em leilões
+            </h1>
+            <p className="text-xl md:text-2xl mb-8 max-w-3xl opacity-90">
+              Imóveis com até 50% de desconto do valor de mercado. Sua chance de fazer o melhor investimento.
+            </p>
+            
+            <form onSubmit={handleSearch} className="flex w-full max-w-lg mb-10">
+              <div className="relative flex-grow">
+                <Search className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder="Buscar por cidade, bairro ou tipo de imóvel..."
+                  className="pl-10 h-12 text-gray-900"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                 />
-              ))}
-            </div>
-          )}
-          
-          <div className="text-center">
-            <Button asChild size="lg">
-              <Link to="/properties">Ver Todos os Imóveis</Link>
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* How it Works */}
-      <section className="py-16 bg-white">
-        <div className="container mx-auto px-4 max-w-7xl">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Como Funciona</h2>
-            <p className="text-xl text-gray-600">Processo simples e transparente para encontrar seu imóvel ideal</p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-auction-primary rounded-full flex items-center justify-center mx-auto mb-4">
-                <Search className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">1. Busque</h3>
-              <p className="text-gray-600">Encontre imóveis por localização, tipo ou faixa de preço</p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-auction-primary rounded-full flex items-center justify-center mx-auto mb-4">
-                <Eye className="w-8 h-8 text-white" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">2. Analise</h3>
-              <p className="text-gray-600">Veja fotos, documentos e análise detalhada de cada propriedade</p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-auction-primary rounded-full flex items-center justify-center mx-auto mb-4">
-                <Calculator className="w-8 h-8 text-white" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">3. Simule</h3>
-              <p className="text-gray-600">Use nossa calculadora para estimar custos e rentabilidade</p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-auction-primary rounded-full flex items-center justify-center mx-auto mb-4">
-                <Target className="w-8 h-8 text-white" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">4. Arremate</h3>
-              <p className="text-gray-600">Participe do leilão e arremate sua propriedade dos sonhos</p>
+              <Button type="submit" className="ml-2 h-12">
+                Buscar
+              </Button>
+            </form>
+            
+            <div className="flex space-x-4">
+              <Button onClick={() => navigate('/properties')} variant="outline" className="bg-white text-gray-900 hover:bg-gray-100">
+                Ver Todos Imóveis
+              </Button>
+              <Button onClick={() => navigate('/simulator')} variant="secondary">
+                Simulador de Lucro
+              </Button>
+              <Button 
+                onClick={() => setShowPlans(!showPlans)} 
+                variant={showPlans ? "default" : "outline"} 
+                className={showPlans ? "bg-auction-primary hover:bg-auction-secondary" : "bg-white text-auction-primary hover:bg-gray-100"}
+              >
+                {showPlans ? "Ocultar Planos" : "Exibir Planos"}
+              </Button>
             </div>
           </div>
         </div>
-      </section>
-
-      {/* Pricing Section - Conditionally rendered */}
-      {showPlansSection && (
-        <section className="py-16 bg-gradient-to-r from-auction-primary to-auction-secondary">
-          <div className="container mx-auto px-4 max-w-7xl">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Planos e Preços</h2>
-              <p className="text-xl text-white opacity-90">Escolha o plano ideal para suas necessidades</p>
+        
+        {/* Subscription plan section - conditionally rendered */}
+        {showPlans && (
+          <div className="bg-gray-50 py-16">
+            <div className="container mx-auto px-4">
+              <div className="text-center max-w-3xl mx-auto mb-10">
+                <h2 className="text-3xl font-bold mb-4">Escolha o Plano Ideal Para Você</h2>
+                <p className="text-gray-600">
+                  Tenha acesso ao maior banco de dados de imóveis em leilão do Brasil e ferramentas exclusivas para ampliar seus resultados.
+                </p>
+              </div>
+              
+              <PricingToggle isYearly={isYearly} onToggle={() => setIsYearly(!isYearly)} />
+              
+              {activePlans.length > 0 ? (
+                <div className="flex flex-wrap justify-center gap-8 mt-8">
+                  {activePlans.map((plan) => (
+                    <div className="w-full md:w-[350px]">
+                      <SubscriptionPlanCard
+                        key={plan.id}
+                        plan={plan}
+                        isCurrentPlan={isCurrentPlan(plan.id)}
+                        isLoading={false}
+                        billingInterval={isYearly ? 'year' : 'month'}
+                        onSubscribe={handleSubscribe}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-10">
+                  <p>Carregando planos...</p>
+                </div>
+              )}
+              
+              <div className="text-center mt-8">
+                <Button onClick={() => navigate('/pricing')} variant="outline" className="text-lg">
+                  Ver Detalhes dos Planos <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* How it works section */}
+        <div className="py-16 bg-white">
+          <div className="container mx-auto px-4">
+            <div className="text-center max-w-3xl mx-auto mb-12">
+              <h2 className="text-3xl font-bold mb-4">Como Funciona</h2>
+              <p className="text-gray-600">
+                Três passos simples para encontrar e adquirir imóveis com descontos incríveis.
+              </p>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {/* Basic Plan */}
-              <Card className="relative">
-                <CardHeader className="text-center">
-                  <CardTitle className="text-2xl">Básico</CardTitle>
-                  <div className="text-4xl font-bold text-auction-primary">Grátis</div>
-                  <p className="text-gray-600">Para exploradores</p>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <ul className="space-y-3">
-                    <li className="flex items-center gap-2">
-                      <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-                        <div className="w-2 h-2 bg-white rounded-full"></div>
-                      </div>
-                      <span>Acesso a lista básica de imóveis</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-                        <div className="w-2 h-2 bg-white rounded-full"></div>
-                      </div>
-                      <span>Filtros básicos de busca</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-                        <div className="w-2 h-2 bg-white rounded-full"></div>
-                      </div>
-                      <span>Simulador básico</span>
-                    </li>
-                  </ul>
-                  <Button className="w-full" variant="outline" asChild>
-                    <Link to="/pricing">Começar Grátis</Link>
-                  </Button>
-                </CardContent>
-              </Card>
-
-              {/* Premium Plan */}
-              <Card className="relative border-auction-primary border-2 shadow-lg scale-105">
-                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                  <Badge className="bg-auction-primary text-white px-4 py-1">Mais Popular</Badge>
+              <Card className="p-6 border-t-4 border-auction-primary">
+                <div className="rounded-full bg-auction-primary/10 w-12 h-12 flex items-center justify-center mb-4">
+                  <span className="text-xl font-bold text-auction-primary">1</span>
                 </div>
-                <CardHeader className="text-center">
-                  <CardTitle className="text-2xl">Premium</CardTitle>
-                  <div className="text-4xl font-bold text-auction-primary">R$ 97<span className="text-lg">/mês</span></div>
-                  <p className="text-gray-600">Para investidores sérios</p>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <ul className="space-y-3">
-                    <li className="flex items-center gap-2">
-                      <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-                        <div className="w-2 h-2 bg-white rounded-full"></div>
-                      </div>
-                      <span>Acesso ilimitado a todos os imóveis</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-                        <div className="w-2 h-2 bg-white rounded-full"></div>
-                      </div>
-                      <span>Análise de mercado detalhada</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-                        <div className="w-2 h-2 bg-white rounded-full"></div>
-                      </div>
-                      <span>Alertas personalizados</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-                        <div className="w-2 h-2 bg-white rounded-full"></div>
-                      </div>
-                      <span>Relatórios de rentabilidade</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-                        <div className="w-2 h-2 bg-white rounded-full"></div>
-                      </div>
-                      <span>Suporte prioritário</span>
-                    </li>
-                  </ul>
-                  <Button className="w-full bg-auction-primary hover:bg-auction-secondary" asChild>
-                    <Link to="/pricing">Assinar Premium</Link>
-                  </Button>
-                </CardContent>
+                <h3 className="text-xl font-semibold mb-2">Busque Imóveis</h3>
+                <p className="text-gray-600">
+                  Use nossos filtros avançados para encontrar imóveis em leilão que atendam aos seus critérios de investimento.
+                </p>
               </Card>
-
-              {/* VIP Plan */}
-              <Card className="relative">
-                <CardHeader className="text-center">
-                  <CardTitle className="text-2xl">VIP</CardTitle>
-                  <div className="text-4xl font-bold text-auction-primary">R$ 197<span className="text-lg">/mês</span></div>
-                  <p className="text-gray-600">Para profissionais</p>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <ul className="space-y-3">
-                    <li className="flex items-center gap-2">
-                      <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-                        <div className="w-2 h-2 bg-white rounded-full"></div>
-                      </div>
-                      <span>Tudo do plano Premium</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-                        <div className="w-2 h-2 bg-white rounded-full"></div>
-                      </div>
-                      <span>API para integrações</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-                        <div className="w-2 h-2 bg-white rounded-full"></div>
-                      </div>
-                      <span>Consultoria especializada</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-                        <div className="w-2 h-2 bg-white rounded-full"></div>
-                      </div>
-                      <span>Relatórios personalizados</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-                        <div className="w-2 h-2 bg-white rounded-full"></div>
-                      </div>
-                      <span>Acesso antecipado a novos leilões</span>
-                    </li>
-                  </ul>
-                  <Button className="w-full" variant="outline" asChild>
-                    <Link to="/pricing">Assinar VIP</Link>
-                  </Button>
-                </CardContent>
+              
+              <Card className="p-6 border-t-4 border-auction-primary">
+                <div className="rounded-full bg-auction-primary/10 w-12 h-12 flex items-center justify-center mb-4">
+                  <span className="text-xl font-bold text-auction-primary">2</span>
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Analise Riscos</h3>
+                <p className="text-gray-600">
+                  Use nossa ferramenta de análise jurídica para avaliar os riscos e potenciais problemas do leilão.
+                </p>
               </Card>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Benefits Section */}
-      <section className="py-16 bg-white">
-        <div className="container mx-auto px-4 max-w-7xl">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Por Que Escolher a HAU?</h2>
-            <p className="text-xl text-gray-600">Vantagens exclusivas para nossos usuários</p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center p-6">
-              <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <TrendingUp className="w-10 h-10 text-blue-600" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Maior Rentabilidade</h3>
-              <p className="text-gray-600">Imóveis com descontos de até 70% do valor de mercado, maximizando seu retorno sobre investimento.</p>
-            </div>
-            <div className="text-center p-6">
-              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Shield className="w-10 h-10 text-green-600" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Segurança Jurídica</h3>
-              <p className="text-gray-600">Todos os leilões são acompanhados por nossa equipe jurídica especializada.</p>
-            </div>
-            <div className="text-center p-6">
-              <div className="w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Clock className="w-10 h-10 text-purple-600" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Atualizações em Tempo Real</h3>
-              <p className="text-gray-600">Base de dados atualizada diariamente com novas oportunidades de investimento.</p>
+              
+              <Card className="p-6 border-t-4 border-auction-primary">
+                <div className="rounded-full bg-auction-primary/10 w-12 h-12 flex items-center justify-center mb-4">
+                  <span className="text-xl font-bold text-auction-primary">3</span>
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Participe do Leilão</h3>
+                <p className="text-gray-600">
+                  Com tudo analisado, participe do leilão com segurança e adquira o imóvel com desconto.
+                </p>
+              </Card>
             </div>
           </div>
         </div>
-      </section>
+        
+        {/* Featured properties section */}
+        <div className="py-16 bg-gray-50">
+          <div className="container mx-auto px-4">
+            <div className="text-center max-w-3xl mx-auto mb-10">
+              <h2 className="text-3xl font-bold mb-4">Imóveis em Destaque</h2>
+              <p className="text-gray-600">
+                Confira algumas das melhores oportunidades disponíveis agora.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {isLoadingProperties ? (
+                <div className="col-span-3 text-center py-10">Carregando imóveis...</div>
+              ) : featuredProperties.length > 0 ? (
+                featuredProperties.map(property => (
+                  <PropertyCard
+                    key={property.id}
+                    {...property}
+                    clickable={true}
+                    isFavorite={favorites.includes(property.id)}
+                    onToggleFavorite={handleToggleFavorite}
+                  />
+                ))
+              ) : (
+                <div className="col-span-3 text-center py-10">Nenhum imóvel encontrado.</div>
+              )}
+            </div>
+            <div className="text-center mt-8">
+              <Button variant="default" onClick={() => navigate('/properties')} className="text-lg">
+                Ver Todos os Imóveis <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </div>
+          </div>
+        </div>
 
-      <Footer />
-    </div>
+        {/* Maiores Rentabilidades */}
+        <div className="py-16 bg-white">
+          <div className="container mx-auto px-4">
+            <div className="text-center max-w-3xl mx-auto mb-10">
+              <h2 className="text-3xl font-bold mb-4">Maiores Rentabilidades</h2>
+              <p className="text-gray-600">
+                Imóveis com maior potencial de lucro percentual sobre o valor de compra.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {isLoadingProperties ? (
+                <div className="col-span-3 text-center py-10">Carregando imóveis...</div>
+              ) : topProfitProperties.length > 0 ? (
+                topProfitProperties.map(property => (
+                  <div key={property.id} className="relative">
+                    <PropertyCard
+                      {...property}
+                      clickable={true}
+                      isFavorite={favorites.includes(property.id)}
+                      onToggleFavorite={handleToggleFavorite}
+                    />
+                    <span className="absolute top-2 left-2 bg-green-600 text-white text-xs font-bold px-2 py-1 rounded shadow">
+                      {property.profitability?.toFixed(1)}% rentabilidade
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <div className="col-span-3 text-center py-10">Nenhum imóvel encontrado.</div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Menores Preços */}
+        <div className="py-16 bg-gray-50">
+          <div className="container mx-auto px-4">
+            <div className="text-center max-w-3xl mx-auto mb-10">
+              <h2 className="text-3xl font-bold mb-4">Menores Preços</h2>
+              <p className="text-gray-600">
+                Imóveis com os menores preços de leilão disponíveis.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {isLoadingProperties ? (
+                <div className="col-span-3 text-center py-10">Carregando imóveis...</div>
+              ) : lowestPriceProperties.length > 0 ? (
+                lowestPriceProperties.map(property => (
+                  <PropertyCard
+                    key={property.id}
+                    {...property}
+                    clickable={true}
+                    isFavorite={favorites.includes(property.id)}
+                    onToggleFavorite={handleToggleFavorite}
+                  />
+                ))
+              ) : (
+                <div className="col-span-3 text-center py-10">Nenhum imóvel encontrado.</div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Maiores Preços */}
+        <div className="py-16 bg-white">
+          <div className="container mx-auto px-4">
+            <div className="text-center max-w-3xl mx-auto mb-10">
+              <h2 className="text-3xl font-bold mb-4">Maiores Preços</h2>
+              <p className="text-gray-600">
+                Imóveis de alto padrão e grandes oportunidades.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {isLoadingProperties ? (
+                <div className="col-span-3 text-center py-10">Carregando imóveis...</div>
+              ) : highestPriceProperties.length > 0 ? (
+                highestPriceProperties.map(property => (
+                  <PropertyCard
+                    key={property.id}
+                    {...property}
+                    clickable={true}
+                    isFavorite={favorites.includes(property.id)}
+                    onToggleFavorite={handleToggleFavorite}
+                  />
+                ))
+              ) : (
+                <div className="col-span-3 text-center py-10">Nenhum imóvel encontrado.</div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+      <Dialog open={showAuthModal} onOpenChange={setShowAuthModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center text-2xl font-light mb-2">EFETUE LOGIN OU CADASTRE-SE</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center justify-center py-2">
+            <AlertTriangle className="w-20 h-20 text-orange-400 mb-4" />
+            <p className="text-center text-base mb-6 text-gray-700">
+              Cadastre-se ou faça login para salvar buscas, selecionar ou descartar imóveis e acessá-los de forma fácil na página em minha conta.
+            </p>
+            <div className="flex gap-4">
+              <Button variant="outline" onClick={() => { setShowAuthModal(false); window.location.href = '/login'; }}>
+                Login
+              </Button>
+              <Button onClick={() => { setShowAuthModal(false); window.location.href = '/register'; }}>
+                Cadastre-se
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
