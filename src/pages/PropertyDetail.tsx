@@ -19,6 +19,8 @@ import {
 } from "@/components/ui/breadcrumb";
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Helmet } from 'react-helmet';
+import { slugify } from '@/utils/slugify';
 
 const supabaseAny = createClient(
   'https://pkvrxhczpvmopgzgcqmk.supabase.co',
@@ -134,14 +136,19 @@ const PropertyDetail = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 pt-20">
-        <Navbar />
-        <div className="container mx-auto max-w-7xl px-4 pt-10">
-          <div className="text-center py-20">
-            <p>Carregando imóvel...</p>
+      <>
+        <Helmet>
+          <title>Carregando imóvel... | AP3</title>
+        </Helmet>
+        <div className="min-h-screen bg-gray-50 pt-20">
+          <Navbar />
+          <div className="container mx-auto max-w-7xl px-4 pt-10">
+            <div className="text-center py-20">
+              <p>Carregando imóvel...</p>
+            </div>
           </div>
         </div>
-      </div>
+      </>
     );
   }
 
@@ -216,323 +223,353 @@ const PropertyDetail = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
-      <div className="container mx-auto max-w-7xl px-4 pt-20 pb-10">
-        {/* Breadcrumb navigation */}
-        <Breadcrumb className="mb-4">
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link to="/">
-                  <Home className="w-4 h-4 mr-1 inline" />
-                </Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link to={backToPropertiesLink}>
-                  Imóveis
-                </Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>{property.title}</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
-        
-        <div className="flex flex-col md:flex-row gap-6">
-          {/* Main content */}
-          <div className="w-full md:w-2/3">
-            {/* Image Gallery */}
-            <div className="bg-white rounded-lg overflow-hidden shadow-sm mb-6">
-              <img 
-                src={property.imageUrl || '/placeholder.svg'} 
-                alt={property.title} 
-                className="w-full h-80 object-cover"
+    <>
+      <Helmet>
+        <title>{property.title} | Imóveis em Leilão | AP3</title>
+        <meta name="description" content={`Imóvel em leilão: ${property.title}, ${property.address}, ${property.city} - ${property.state}. Desconto de ${property.discount}%`} />
+        <meta property="og:title" content={property.title} />
+        <meta property="og:description" content={`Imóvel em leilão: ${property.title}, ${property.address}, ${property.city} - ${property.state}. Desconto de ${property.discount}%`} />
+        <meta property="og:url" content={`https://www.seusite.com/imovel/${property.state}/${slugify(property.city)}/${property.id}`} />
+        <meta property="og:image" content={property.imageUrl} />
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Product",
+            "name": property.title,
+            "description": property.description,
+            "offers": {
+              "@type": "Offer",
+              "price": property.auctionPrice,
+              "priceCurrency": "BRL"
+            },
+            "address": {
+              "@type": "PostalAddress",
+              "streetAddress": property.address,
+              "addressLocality": property.city,
+              "addressRegion": property.state,
+              "addressCountry": "BR"
+            }
+          })}
+        </script>
+      </Helmet>
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <div className="container mx-auto max-w-7xl px-4 pt-20 pb-10">
+          {/* Breadcrumb navigation */}
+          <Breadcrumb className="mb-4">
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link to="/">
+                    <Home className="w-4 h-4 mr-1 inline" />
+                  </Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link to={backToPropertiesLink}>
+                    Imóveis
+                  </Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>{property.title}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+          
+          <div className="flex flex-col md:flex-row gap-6">
+            {/* Main content */}
+            <div className="w-full md:w-2/3">
+              {/* Image Gallery */}
+              <div className="bg-white rounded-lg overflow-hidden shadow-sm mb-6">
+                <img 
+                  src={property.imageUrl || '/placeholder.svg'} 
+                  alt={property.title} 
+                  className="w-full h-80 object-cover"
+                />
+              </div>
+              {/* Main information block */}
+              <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+                {/* Line 1: Title on the left, badge on the right */}
+                <div className="flex items-center justify-between gap-2 min-w-0">
+                  <h1 className="text-2xl md:text-3xl font-bold min-w-0">{property.title}</h1>
+                  <Badge className="discount-badge text-base whitespace-nowrap bg-auction-primary text-white px-4 py-2 rounded-full">
+                    {property.discount}% abaixo do mercado
+                  </Badge>
+                </div>
+                {/* Card de informações principais */}
+                <div className="flex flex-wrap gap-6 mt-6 mb-2 items-center">
+                  {/* Área útil */}
+                  {(!!property.area_util || (!!property.details?.area && property.details.area !== '0' && property.details.area !== '')) && (
+                    <div className="flex flex-col items-center min-w-[110px]">
+                      <span className="text-gray-600 text-sm mb-1">Área Útil:</span>
+                      <div className="flex items-center gap-1">
+                        <Ruler className="w-5 h-5 text-auction-primary" />
+                        <span className="text-lg font-semibold">{property.area_util || property.details.area} m²</span>
+                      </div>
+                    </div>
+                  )}
+                  {/* Quartos */}
+                  {(!!property.bedrooms || (!!property.details?.bedrooms && property.details.bedrooms !== 0)) && (
+                    <div className="flex flex-col items-center min-w-[90px]">
+                      <span className="text-gray-600 text-sm mb-1">Quartos:</span>
+                      <div className="flex items-center gap-1">
+                        <Bed className="w-5 h-5 text-auction-primary" />
+                        <span className="text-lg font-semibold">{property.bedrooms || property.details?.bedrooms}</span>
+                      </div>
+                    </div>
+                  )}
+                  {/* Vagas */}
+                  {(!!property.garage || (!!property.details?.parkingSpots && property.details.parkingSpots !== 0)) && (
+                    <div className="flex flex-col items-center min-w-[90px]">
+                      <span className="text-gray-600 text-sm mb-1">Vagas:</span>
+                      <div className="flex items-center gap-1">
+                        <Car className="w-5 h-5 text-auction-primary" />
+                        <span className="text-lg font-semibold">{property.garage || property.details?.parkingSpots}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                {/* Line 2: Address */}
+                <div className="flex items-center text-gray-600 text-sm mt-1">
+                  <MapPin className="h-4 w-4 mr-1" />
+                  <span>{property.address}, {property.city} - {property.state}</span>
+                </div>
+                {/* Line 3: type, value, date */}
+                <div className="flex items-center space-x-4 text-sm mt-2">
+                  <div className="flex items-center">
+                    <Home className="h-4 w-4 mr-1 text-gray-700" />
+                    <span>{property.type}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <DollarSign className="h-4 w-4 mr-1 text-green-600" />
+                    <span>{formatCurrency(property.auctionPrice)}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <Calendar className="h-4 w-4 mr-1 text-gray-700" />
+                    <span>{formatDate(property.auctionDate)}</span>
+                  </div>
+                </div>
+                {/* Line 4: Buttons */}
+                <div className="flex flex-wrap gap-2 mt-4 items-center">
+                  <Button 
+                    className="bg-primary text-white hover:bg-primary/90 border-none shadow-none"
+                    onClick={() => {/* ação de arrematar */}}
+                  >
+                    Quero arrematar
+                  </Button>
+                  
+                  <Button variant="outline" className="flex items-center gap-2" onClick={handleShare}>
+                    <Share2 className="w-4 h-4" /> Compartilhar
+                  </Button>
+                  {/* Ícone de favorito entre os botões */}
+                  <button
+                    className={`rounded-full p-2 bg-white/80 hover:bg-white shadow transition-all ${isFavorite ? 'text-red-600' : 'text-gray-400'}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      handleToggleFavorite();
+                    }}
+                    aria-label={isFavorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
+                    style={{ lineHeight: 0 }}
+                  >
+                    <Heart
+                      className={`w-6 h-6 ${isFavorite ? 'fill-red-600' : 'fill-none'}`}
+                      fill={isFavorite ? 'red' : 'none'}
+                    />
+                  </button>
+                </div>
+              </div>
+              {/* Tabs */}
+              <Tabs defaultValue="details" className="bg-white rounded-lg shadow-sm">
+                <TabsList className="w-full border-b">
+                  <TabsTrigger value="details" className="flex-1">Detalhes</TabsTrigger>
+                  <TabsTrigger value="auction" className="flex-1">Informações do Leilão</TabsTrigger>
+                  <TabsTrigger value="location" className="flex-1">Localização</TabsTrigger>
+                </TabsList>
+                {/* Details tab content */}
+                <TabsContent value="details" className="p-6 space-y-6">
+                  <div>
+                    <h2 className="text-xl font-semibold mb-2">Descrição</h2>
+                    <p className="text-gray-700 whitespace-pre-line">{property.description}</p>
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-semibold mb-2">Comparativo de Preços</h2>
+                    <div className="bg-gray-50 p-4 rounded-md">
+                      <div className="flex justify-between mb-2">
+                        <span>Valor do Leilão:</span>
+                        <span className="font-bold">{formatCurrency(property.auctionPrice)}</span>
+                      </div>
+                      <div className="flex justify-between mb-2">
+                        <span>Valor de Mercado:</span>
+                        <span className="font-bold">{formatCurrency(property.marketPrice)}</span>
+                      </div>
+                      <div className="flex justify-between text-green-600">
+                        <span>Economia:</span>
+                        <span className="font-bold">{formatCurrency(property.marketPrice - property.auctionPrice)}</span>
+                      </div>
+                    </div>
+                  </div>
+                  {/* Available documents */}
+                  <div>
+                    <h2 className="text-xl font-semibold mb-4">Documentos</h2>
+                    <div className="flex gap-6">
+                      {property.matricula_pdf_url && (
+                        <div 
+                          className="flex flex-col items-center cursor-pointer border border-gray-200 p-4 rounded-md hover:bg-gray-50 transition-colors"
+                          onClick={() => openDocument(property.matricula_pdf_url)}
+                        >
+                          <div className="border border-teal-700 rounded p-4 mb-2">
+                            <FileText className="w-8 h-8 text-teal-700" />
+                          </div>
+                          <span className="text-teal-700">Matrícula</span>
+                        </div>
+                      )}
+                      
+                      {property.edital_pdf_url && (
+                        <div 
+                          className="flex flex-col items-center cursor-pointer border border-gray-200 p-4 rounded-md hover:bg-gray-50 transition-colors"
+                          onClick={() => openDocument(property.edital_pdf_url)}
+                        >
+                          <div className="border border-teal-700 rounded p-4 mb-2">
+                            <File className="w-8 h-8 text-teal-700" />
+                          </div>
+                          <span className="text-teal-700">Edital</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {property.details && (
+                    <div>
+                      <h2 className="text-xl font-semibold mb-2">Detalhes Técnicos</h2>
+                      <ul className="list-disc pl-6 text-gray-700">
+                        {property.details.area && <li><strong>Área:</strong> {property.details.area}</li>}
+                        {property.details.bedrooms && <li><strong>Dormitórios:</strong> {property.details.bedrooms}</li>}
+                        {property.details.bathrooms && <li><strong>Banheiros:</strong> {property.details.bathrooms}</li>}
+                        {property.details.parkingSpots && <li><strong>Vagas:</strong> {property.details.parkingSpots}</li>}
+                        {property.details.floor && <li><strong>Andar:</strong> {property.details.floor}</li>}
+                        {property.details.yearBuilt && <li><strong>Ano de construção:</strong> {property.details.yearBuilt}</li>}
+                        {property.details.condominium && <li><strong>Condomínio:</strong> {formatCurrency(property.details.condominium)}</li>}
+                        {property.details.iptu && <li><strong>IPTU:</strong> {formatCurrency(property.details.iptu)}</li>}
+                      </ul>
+                    </div>
+                  )}
+                </TabsContent>
+                
+                {/* Auction information tab content */}
+                <TabsContent value="auction" className="p-6 space-y-6">
+                  <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+                    <div className="flex">
+                      <AlertTriangle className="h-6 w-6 text-yellow-500 mr-2" />
+                      <div>
+                        <h4 className="font-semibold">Aviso importante</h4>
+                        <p className="text-sm text-gray-600">
+                          As informações aqui apresentadas são baseadas no edital do leilão. Sempre consulte o edital completo e busque assessoria jurídica antes de participar de qualquer leilão.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-gray-500 text-sm">Leiloeiro</span>
+                      <p className="font-semibold">{property.auctionDetails?.auctionHouse}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 text-sm">Site do Leiloeiro</span>
+                      <p className="font-semibold">{property.auctionDetails?.auctionSite}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 text-sm">Processo</span>
+                      <p className="font-semibold">{property.auctionDetails?.auctionProcess}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 text-sm">Vara/Tribunal</span>
+                      <p className="font-semibold">{property.auctionDetails?.auctionCourt}</p>
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold mb-3">Datas e Valores</h3>
+                    <div className="space-y-4">
+                      <div className="bg-gray-50 p-4 rounded-md">
+                        <div className="flex items-center mb-2">
+                          <Gavel className="h-5 w-5 mr-2 text-auction-primary" />
+                          <h4 className="font-semibold">1º Leilão - {formatDate(property.auctionDetails?.firstDate)}</h4>
+                        </div>
+                        <p className="text-sm text-gray-600 mb-2">
+                          No 1º leilão, o valor mínimo para lance é o valor de avaliação do imóvel.
+                        </p>
+                        <div className="flex justify-between">
+                          <span>Lance mínimo:</span>
+                          <span className="font-bold">{formatCurrency(property.auctionDetails?.minimumBid1 || 0)}</span>
+                        </div>
+                      </div>
+                      <div className="bg-gray-50 p-4 rounded-md">
+                        <div className="flex items-center mb-2">
+                          <Gavel className="h-5 w-5 mr-2 text-auction-primary" />
+                          <h4 className="font-semibold">2º Leilão - {formatDate(property.auctionDetails?.secondDate)}</h4>
+                        </div>
+                        <p className="text-sm text-gray-600 mb-2">
+                          No 2º leilão, caso o 1º não tenha lances, o valor mínimo costuma ser menor.
+                        </p>
+                        <div className="flex justify-between">
+                          <span>Lance mínimo:</span>
+                          <span className="font-bold">{formatCurrency(property.auctionDetails?.minimumBid2 || 0)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <Button className="w-full bg-green-400 text-black hover:bg-green-500">
+                    Quero participar deste leilão
+                  </Button>
+                </TabsContent>
+                
+                {/* Location tab content */}
+                <TabsContent value="location" className="p-6">
+                  <h3 className="text-xl font-semibold mb-3">Localização do Imóvel</h3>
+                  <p className="text-gray-600 mb-4">
+                    {property.address}, {property.city} - {property.state}
+                  </p>
+                  {isLoadingMapsKey ? (
+                    <div className="bg-white rounded-lg h-[400px] mb-4 flex items-center justify-center">Carregando mapa...</div>
+                  ) : mapsKeyError ? (
+                    <div className="bg-white rounded-lg h-[400px] mb-4 flex items-center justify-center text-red-600">{mapsKeyError}</div>
+                  ) : (
+                    <div className="bg-white rounded-lg h-[400px] mb-4 overflow-hidden">
+                      <iframe
+                        width="100%"
+                        height="100%"
+                        style={{ border: 0 }}
+                        loading="lazy"
+                        allowFullScreen
+                        referrerPolicy="no-referrer-when-downgrade"
+                        src={`https://www.google.com/maps/embed/v1/place?key=${mapsApiKey}&q=${encodeURIComponent(
+                          `${property.address}, ${property.city}, ${property.state}`
+                        )}`}
+                      ></iframe>
+                    </div>
+                  )}
+                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mt-4">
+                    <h4 className="font-semibold mb-2">Sobre a região</h4>
+                    <p className="text-sm text-gray-600">
+                      Verifique a segurança do bairro, proximidade de transporte público, escolas, comércio e outros serviços 
+                      essenciais antes de tomar sua decisão de investimento.
+                    </p>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </div>
+            {/* Sidebar */}
+            <div className="w-full md:w-1/3 space-y-6">
+              <RiskAnalyzer />
+              <ProfitSimulator 
+                auctionValue={property.auctionPrice}
+                marketValue={property.marketPrice}
               />
             </div>
-            {/* Main information block */}
-            <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-              {/* Line 1: Title on the left, badge on the right */}
-              <div className="flex items-center justify-between gap-2 min-w-0">
-                <h1 className="text-2xl md:text-3xl font-bold min-w-0">{property.title}</h1>
-                <Badge className="discount-badge text-base whitespace-nowrap bg-auction-primary text-white px-4 py-2 rounded-full">
-                  {property.discount}% abaixo do mercado
-                </Badge>
-              </div>
-              {/* Card de informações principais */}
-              <div className="flex flex-wrap gap-6 mt-6 mb-2 items-center">
-                {/* Área útil */}
-                {(!!property.area_util || (!!property.details?.area && property.details.area !== '0' && property.details.area !== '')) && (
-                  <div className="flex flex-col items-center min-w-[110px]">
-                    <span className="text-gray-600 text-sm mb-1">Área Útil:</span>
-                    <div className="flex items-center gap-1">
-                      <Ruler className="w-5 h-5 text-auction-primary" />
-                      <span className="text-lg font-semibold">{property.area_util || property.details.area} m²</span>
-                    </div>
-                  </div>
-                )}
-                {/* Quartos */}
-                {(!!property.bedrooms || (!!property.details?.bedrooms && property.details.bedrooms !== 0)) && (
-                  <div className="flex flex-col items-center min-w-[90px]">
-                    <span className="text-gray-600 text-sm mb-1">Quartos:</span>
-                    <div className="flex items-center gap-1">
-                      <Bed className="w-5 h-5 text-auction-primary" />
-                      <span className="text-lg font-semibold">{property.bedrooms || property.details?.bedrooms}</span>
-                    </div>
-                  </div>
-                )}
-                {/* Vagas */}
-                {(!!property.garage || (!!property.details?.parkingSpots && property.details.parkingSpots !== 0)) && (
-                  <div className="flex flex-col items-center min-w-[90px]">
-                    <span className="text-gray-600 text-sm mb-1">Vagas:</span>
-                    <div className="flex items-center gap-1">
-                      <Car className="w-5 h-5 text-auction-primary" />
-                      <span className="text-lg font-semibold">{property.garage || property.details?.parkingSpots}</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-              {/* Line 2: Address */}
-              <div className="flex items-center text-gray-600 text-sm mt-1">
-                <MapPin className="h-4 w-4 mr-1" />
-                <span>{property.address}, {property.city} - {property.state}</span>
-              </div>
-              {/* Line 3: type, value, date */}
-              <div className="flex items-center space-x-4 text-sm mt-2">
-                <div className="flex items-center">
-                  <Home className="h-4 w-4 mr-1 text-gray-700" />
-                  <span>{property.type}</span>
-                </div>
-                <div className="flex items-center">
-                  <DollarSign className="h-4 w-4 mr-1 text-green-600" />
-                  <span>{formatCurrency(property.auctionPrice)}</span>
-                </div>
-                <div className="flex items-center">
-                  <Calendar className="h-4 w-4 mr-1 text-gray-700" />
-                  <span>{formatDate(property.auctionDate)}</span>
-                </div>
-              </div>
-              {/* Line 4: Buttons */}
-              <div className="flex flex-wrap gap-2 mt-4 items-center">
-                <Button 
-                  className="bg-primary text-white hover:bg-primary/90 border-none shadow-none"
-                  onClick={() => {/* ação de arrematar */}}
-                >
-                  Quero arrematar
-                </Button>
-                
-                <Button variant="outline" className="flex items-center gap-2" onClick={handleShare}>
-                  <Share2 className="w-4 h-4" /> Compartilhar
-                </Button>
-                {/* Ícone de favorito entre os botões */}
-                <button
-                  className={`rounded-full p-2 bg-white/80 hover:bg-white shadow transition-all ${isFavorite ? 'text-red-600' : 'text-gray-400'}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    handleToggleFavorite();
-                  }}
-                  aria-label={isFavorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
-                  style={{ lineHeight: 0 }}
-                >
-                  <Heart
-                    className={`w-6 h-6 ${isFavorite ? 'fill-red-600' : 'fill-none'}`}
-                    fill={isFavorite ? 'red' : 'none'}
-                  />
-                </button>
-              </div>
-            </div>
-            {/* Tabs */}
-            <Tabs defaultValue="details" className="bg-white rounded-lg shadow-sm">
-              <TabsList className="w-full border-b">
-                <TabsTrigger value="details" className="flex-1">Detalhes</TabsTrigger>
-                <TabsTrigger value="auction" className="flex-1">Informações do Leilão</TabsTrigger>
-                <TabsTrigger value="location" className="flex-1">Localização</TabsTrigger>
-              </TabsList>
-              {/* Details tab content */}
-              <TabsContent value="details" className="p-6 space-y-6">
-                <div>
-                  <h2 className="text-xl font-semibold mb-2">Descrição</h2>
-                  <p className="text-gray-700 whitespace-pre-line">{property.description}</p>
-                </div>
-                <div>
-                  <h2 className="text-xl font-semibold mb-2">Comparativo de Preços</h2>
-                  <div className="bg-gray-50 p-4 rounded-md">
-                    <div className="flex justify-between mb-2">
-                      <span>Valor do Leilão:</span>
-                      <span className="font-bold">{formatCurrency(property.auctionPrice)}</span>
-                    </div>
-                    <div className="flex justify-between mb-2">
-                      <span>Valor de Mercado:</span>
-                      <span className="font-bold">{formatCurrency(property.marketPrice)}</span>
-                    </div>
-                    <div className="flex justify-between text-green-600">
-                      <span>Economia:</span>
-                      <span className="font-bold">{formatCurrency(property.marketPrice - property.auctionPrice)}</span>
-                    </div>
-                  </div>
-                </div>
-                {/* Available documents */}
-                <div>
-                  <h2 className="text-xl font-semibold mb-4">Documentos</h2>
-                  <div className="flex gap-6">
-                    {property.matricula_pdf_url && (
-                      <div 
-                        className="flex flex-col items-center cursor-pointer border border-gray-200 p-4 rounded-md hover:bg-gray-50 transition-colors"
-                        onClick={() => openDocument(property.matricula_pdf_url)}
-                      >
-                        <div className="border border-teal-700 rounded p-4 mb-2">
-                          <FileText className="w-8 h-8 text-teal-700" />
-                        </div>
-                        <span className="text-teal-700">Matrícula</span>
-                      </div>
-                    )}
-                    
-                    {property.edital_pdf_url && (
-                      <div 
-                        className="flex flex-col items-center cursor-pointer border border-gray-200 p-4 rounded-md hover:bg-gray-50 transition-colors"
-                        onClick={() => openDocument(property.edital_pdf_url)}
-                      >
-                        <div className="border border-teal-700 rounded p-4 mb-2">
-                          <File className="w-8 h-8 text-teal-700" />
-                        </div>
-                        <span className="text-teal-700">Edital</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                
-                {property.details && (
-                  <div>
-                    <h2 className="text-xl font-semibold mb-2">Detalhes Técnicos</h2>
-                    <ul className="list-disc pl-6 text-gray-700">
-                      {property.details.area && <li><strong>Área:</strong> {property.details.area}</li>}
-                      {property.details.bedrooms && <li><strong>Dormitórios:</strong> {property.details.bedrooms}</li>}
-                      {property.details.bathrooms && <li><strong>Banheiros:</strong> {property.details.bathrooms}</li>}
-                      {property.details.parkingSpots && <li><strong>Vagas:</strong> {property.details.parkingSpots}</li>}
-                      {property.details.floor && <li><strong>Andar:</strong> {property.details.floor}</li>}
-                      {property.details.yearBuilt && <li><strong>Ano de construção:</strong> {property.details.yearBuilt}</li>}
-                      {property.details.condominium && <li><strong>Condomínio:</strong> {formatCurrency(property.details.condominium)}</li>}
-                      {property.details.iptu && <li><strong>IPTU:</strong> {formatCurrency(property.details.iptu)}</li>}
-                    </ul>
-                  </div>
-                )}
-              </TabsContent>
-              
-              {/* Auction information tab content */}
-              <TabsContent value="auction" className="p-6 space-y-6">
-                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
-                  <div className="flex">
-                    <AlertTriangle className="h-6 w-6 text-yellow-500 mr-2" />
-                    <div>
-                      <h4 className="font-semibold">Aviso importante</h4>
-                      <p className="text-sm text-gray-600">
-                        As informações aqui apresentadas são baseadas no edital do leilão. Sempre consulte o edital completo e busque assessoria jurídica antes de participar de qualquer leilão.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <span className="text-gray-500 text-sm">Leiloeiro</span>
-                    <p className="font-semibold">{property.auctionDetails?.auctionHouse}</p>
-                  </div>
-                  <div>
-                    <span className="text-gray-500 text-sm">Site do Leiloeiro</span>
-                    <p className="font-semibold">{property.auctionDetails?.auctionSite}</p>
-                  </div>
-                  <div>
-                    <span className="text-gray-500 text-sm">Processo</span>
-                    <p className="font-semibold">{property.auctionDetails?.auctionProcess}</p>
-                  </div>
-                  <div>
-                    <span className="text-gray-500 text-sm">Vara/Tribunal</span>
-                    <p className="font-semibold">{property.auctionDetails?.auctionCourt}</p>
-                  </div>
-                </div>
-                <div>
-                  <h3 className="text-xl font-semibold mb-3">Datas e Valores</h3>
-                  <div className="space-y-4">
-                    <div className="bg-gray-50 p-4 rounded-md">
-                      <div className="flex items-center mb-2">
-                        <Gavel className="h-5 w-5 mr-2 text-auction-primary" />
-                        <h4 className="font-semibold">1º Leilão - {formatDate(property.auctionDetails?.firstDate)}</h4>
-                      </div>
-                      <p className="text-sm text-gray-600 mb-2">
-                        No 1º leilão, o valor mínimo para lance é o valor de avaliação do imóvel.
-                      </p>
-                      <div className="flex justify-between">
-                        <span>Lance mínimo:</span>
-                        <span className="font-bold">{formatCurrency(property.auctionDetails?.minimumBid1 || 0)}</span>
-                      </div>
-                    </div>
-                    <div className="bg-gray-50 p-4 rounded-md">
-                      <div className="flex items-center mb-2">
-                        <Gavel className="h-5 w-5 mr-2 text-auction-primary" />
-                        <h4 className="font-semibold">2º Leilão - {formatDate(property.auctionDetails?.secondDate)}</h4>
-                      </div>
-                      <p className="text-sm text-gray-600 mb-2">
-                        No 2º leilão, caso o 1º não tenha lances, o valor mínimo costuma ser menor.
-                      </p>
-                      <div className="flex justify-between">
-                        <span>Lance mínimo:</span>
-                        <span className="font-bold">{formatCurrency(property.auctionDetails?.minimumBid2 || 0)}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <Button className="w-full bg-green-400 text-black hover:bg-green-500">
-                  Quero participar deste leilão
-                </Button>
-              </TabsContent>
-              
-              {/* Location tab content */}
-              <TabsContent value="location" className="p-6">
-                <h3 className="text-xl font-semibold mb-3">Localização do Imóvel</h3>
-                <p className="text-gray-600 mb-4">
-                  {property.address}, {property.city} - {property.state}
-                </p>
-                {isLoadingMapsKey ? (
-                  <div className="bg-white rounded-lg h-[400px] mb-4 flex items-center justify-center">Carregando mapa...</div>
-                ) : mapsKeyError ? (
-                  <div className="bg-white rounded-lg h-[400px] mb-4 flex items-center justify-center text-red-600">{mapsKeyError}</div>
-                ) : (
-                  <div className="bg-white rounded-lg h-[400px] mb-4 overflow-hidden">
-                    <iframe
-                      width="100%"
-                      height="100%"
-                      style={{ border: 0 }}
-                      loading="lazy"
-                      allowFullScreen
-                      referrerPolicy="no-referrer-when-downgrade"
-                      src={`https://www.google.com/maps/embed/v1/place?key=${mapsApiKey}&q=${encodeURIComponent(
-                        `${property.address}, ${property.city}, ${property.state}`
-                      )}`}
-                    ></iframe>
-                  </div>
-                )}
-                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mt-4">
-                  <h4 className="font-semibold mb-2">Sobre a região</h4>
-                  <p className="text-sm text-gray-600">
-                    Verifique a segurança do bairro, proximidade de transporte público, escolas, comércio e outros serviços 
-                    essenciais antes de tomar sua decisão de investimento.
-                  </p>
-                </div>
-              </TabsContent>
-            </Tabs>
-          </div>
-          {/* Sidebar */}
-          <div className="w-full md:w-1/3 space-y-6">
-            <RiskAnalyzer />
-            <ProfitSimulator 
-              auctionValue={property.auctionPrice}
-              marketValue={property.marketPrice}
-            />
           </div>
         </div>
       </div>
@@ -558,7 +595,7 @@ const PropertyDetail = () => {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 };
 
