@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import UserDashboardHeader from '@/components/UserDashboardHeader';
@@ -18,16 +19,23 @@ import PropertyListItem from '@/components/PropertyListItem';
 import { Button } from "@/components/ui/button";
 import useSWR from 'swr';
 
+type Property = Tables<'properties'>;
+
+interface PropertyData {
+  data: Property[] | null;
+  count: number | null;
+}
+
 const UserDashboard = () => {
   const [activeTab, setActiveTab] = useState("busca");
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<any>(null);
   const { subscriptionStatus } = useSubscription();
   const { properties, isLoading, error } = useProperties();
   const [filters, setFilters] = useState<any>(defaultFilters);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [sortBy, setSortBy] = useState<string>('discount');
   const itemsPerPage = 12;
-  const [pageProperties, setPageProperties] = useState<any[]>([]);
+  const [pageProperties, setPageProperties] = useState<Property[]>([]);
   const [totalProperties, setTotalProperties] = useState<number>(0);
   const [filteredTotal, setFilteredTotal] = useState<number>(0);
   const [favorites, setFavorites] = useState<string[]>([]);
@@ -36,26 +44,68 @@ const UserDashboard = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   // Função para buscar imóveis paginados direto do Supabase
-  const fetchPropertiesPage = async (filters: any, page = 1, pageSize = 12) => {
+  const fetchPropertiesPage = async (filters: any, page = 1, pageSize = 12): Promise<PropertyData> => {
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
+    
     let query = supabase.from('properties').select('*', { count: 'exact' });
-    if (filters.state && filters.state !== '') query = query.eq('state', filters.state);
-    if (filters.location && filters.location !== '') {
-      query = query.or(`city.ilike.%${filters.location}%,address.ilike.%${filters.location}%,type.ilike.%${filters.location}%,state.ilike.%${filters.location}%`);
+    
+    // Apply filters step by step to avoid complex type inference
+    if (filters.state && filters.state !== '') {
+      query = query.eq('state', filters.state);
     }
-    if (filters.propertyType && filters.propertyType !== '') query = query.eq('type', filters.propertyType);
-    if (filters.auctionType && filters.auctionType !== '') query = query.eq('auction_type', filters.auctionType);
-    if (filters.discount && filters.discount > 0) query = query.gte('discount', filters.discount);
-    if (filters.minPrice && filters.minPrice > 0) query = query.gte('auction_price', filters.minPrice);
-    if (filters.maxPrice && filters.maxPrice > 0) query = query.lte('auction_price', filters.maxPrice);
-    if (filters.bedrooms && filters.bedrooms !== '') query = query.gte('bedrooms', Number(filters.bedrooms));
-    if (filters.garage && filters.garage !== '') query = query.gte('garage', Number(filters.garage));
-    if (filters.allow_financing) query = query.eq('allow_financing', true);
-    if (filters.allow_consorcio) query = query.eq('allow_consorcio', true);
-    if (filters.allow_fgts) query = query.eq('allow_fgts', true);
-    if (filters.allow_parcelamento) query = query.eq('allow_parcelamento', true);
+    
+    if (filters.location && filters.location !== '') {
+      const locationFilter = `city.ilike.%${filters.location}%,address.ilike.%${filters.location}%,type.ilike.%${filters.location}%,state.ilike.%${filters.location}%`;
+      query = query.or(locationFilter);
+    }
+    
+    if (filters.propertyType && filters.propertyType !== '') {
+      query = query.eq('type', filters.propertyType);
+    }
+    
+    if (filters.auctionType && filters.auctionType !== '') {
+      query = query.eq('auction_type', filters.auctionType);
+    }
+    
+    if (filters.discount && filters.discount > 0) {
+      query = query.gte('discount', filters.discount);
+    }
+    
+    if (filters.minPrice && filters.minPrice > 0) {
+      query = query.gte('auction_price', filters.minPrice);
+    }
+    
+    if (filters.maxPrice && filters.maxPrice > 0) {
+      query = query.lte('auction_price', filters.maxPrice);
+    }
+    
+    if (filters.bedrooms && filters.bedrooms !== '') {
+      query = query.gte('bedrooms', Number(filters.bedrooms));
+    }
+    
+    if (filters.garage && filters.garage !== '') {
+      query = query.gte('garage', Number(filters.garage));
+    }
+    
+    if (filters.allow_financing) {
+      query = query.eq('allow_financing', true);
+    }
+    
+    if (filters.allow_consorcio) {
+      query = query.eq('allow_consorcio', true);
+    }
+    
+    if (filters.allow_fgts) {
+      query = query.eq('allow_fgts', true);
+    }
+    
+    if (filters.allow_parcelamento) {
+      query = query.eq('allow_parcelamento', true);
+    }
+    
     query = query.order('created_at', { ascending: false }).range(from, to);
+    
     const { data, error, count } = await query;
     if (error) throw error;
     return { data, count };
@@ -120,7 +170,7 @@ const UserDashboard = () => {
     if (swrData) {
       let sorted = swrData.data || [];
       if (filters && filters.riskLevel && filters.riskLevel !== '') {
-        const riskMap = { baixo: 'low', médio: 'medium', alto: 'high' };
+        const riskMap: Record<string, string> = { baixo: 'low', médio: 'medium', alto: 'high' };
         const selectedRisk = riskMap[filters.riskLevel] || filters.riskLevel;
         sorted = sorted.filter(property => {
           let riskLevel = 'medium';
