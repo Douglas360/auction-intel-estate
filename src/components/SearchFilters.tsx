@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   Card,
@@ -143,7 +144,7 @@ const SearchFilters = ({ filters, setFilters, onSearch }: { filters: any, setFil
                     <SelectItem key={type} value={type}>
                       <div className="flex justify-between items-center w-full">
                         <span>{type}</span>
-                        <span className="ml-2 px-2 py-1 bg-purple-500 text-white text-xs rounded-full">
+                        <span className="ml-auto px-2 py-1 bg-primary text-primary-foreground text-xs rounded-full font-medium">
                           {count}
                         </span>
                       </div>
