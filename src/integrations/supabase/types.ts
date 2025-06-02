@@ -145,24 +145,33 @@ export type Database = {
       properties: {
         Row: {
           address: string
+          allow_consorcio: boolean | null
+          allow_fgts: boolean | null
+          allow_financing: boolean | null
+          area_util: number | null
           auction_date: string | null
           auction_price: number
           auction_type: string | null
           auctioneer: string | null
           auctioneer_site: string | null
+          bairro_nome: string | null
+          bedrooms: number | null
           city: string
           court: string | null
           created_at: string | null
           description: string | null
           discount: number | null
           edital_pdf_url: string | null
+          garage: number | null
           id: string
           images: string[] | null
+          judicial_information: string | null
           market_price: number
           matricula_pdf_url: string | null
           min_bid: number | null
           process_number: string | null
           region_description: string | null
+          slug: string | null
           state: string
           status: string | null
           title: string
@@ -171,24 +180,33 @@ export type Database = {
         }
         Insert: {
           address: string
+          allow_consorcio?: boolean | null
+          allow_fgts?: boolean | null
+          allow_financing?: boolean | null
+          area_util?: number | null
           auction_date?: string | null
           auction_price: number
           auction_type?: string | null
           auctioneer?: string | null
           auctioneer_site?: string | null
+          bairro_nome?: string | null
+          bedrooms?: number | null
           city: string
           court?: string | null
           created_at?: string | null
           description?: string | null
           discount?: number | null
           edital_pdf_url?: string | null
+          garage?: number | null
           id?: string
           images?: string[] | null
+          judicial_information?: string | null
           market_price: number
           matricula_pdf_url?: string | null
           min_bid?: number | null
           process_number?: string | null
           region_description?: string | null
+          slug?: string | null
           state: string
           status?: string | null
           title: string
@@ -197,24 +215,33 @@ export type Database = {
         }
         Update: {
           address?: string
+          allow_consorcio?: boolean | null
+          allow_fgts?: boolean | null
+          allow_financing?: boolean | null
+          area_util?: number | null
           auction_date?: string | null
           auction_price?: number
           auction_type?: string | null
           auctioneer?: string | null
           auctioneer_site?: string | null
+          bairro_nome?: string | null
+          bedrooms?: number | null
           city?: string
           court?: string | null
           created_at?: string | null
           description?: string | null
           discount?: number | null
           edital_pdf_url?: string | null
+          garage?: number | null
           id?: string
           images?: string[] | null
+          judicial_information?: string | null
           market_price?: number
           matricula_pdf_url?: string | null
           min_bid?: number | null
           process_number?: string | null
           region_description?: string | null
+          slug?: string | null
           state?: string
           status?: string | null
           title?: string
@@ -222,6 +249,87 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      property_auction_stages: {
+        Row: {
+          data_fim: string | null
+          id: string
+          property_id: string | null
+          valor_inicial: number | null
+        }
+        Insert: {
+          data_fim?: string | null
+          id?: string
+          property_id?: string | null
+          valor_inicial?: number | null
+        }
+        Update: {
+          data_fim?: string | null
+          id?: string
+          property_id?: string | null
+          valor_inicial?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_auction_stages_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_characteristics: {
+        Row: {
+          description: string | null
+          id: string
+          property_id: string | null
+        }
+        Insert: {
+          description?: string | null
+          id?: string
+          property_id?: string | null
+        }
+        Update: {
+          description?: string | null
+          id?: string
+          property_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_characteristics_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_images: {
+        Row: {
+          id: string
+          property_id: string | null
+          url: string
+        }
+        Insert: {
+          id?: string
+          property_id?: string | null
+          url: string
+        }
+        Update: {
+          id?: string
+          property_id?: string | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_images_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       subscription_plans: {
         Row: {

@@ -18,6 +18,7 @@ const Index = () => {
   const [isYearly, setIsYearly] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [checkoutLoadingPlanId, setCheckoutLoadingPlanId] = useState<string | null>(null);
+  const [showPlans, setShowPlans] = useState(true);
   const navigate = useNavigate();
   const { 
     plans: activePlans, 
@@ -126,50 +127,59 @@ const Index = () => {
               <Button onClick={() => navigate('/simulator')} variant="secondary">
                 Simulador de Lucro
               </Button>
-            </div>
-          </div>
-        </div>
-        
-        {/* Subscription plan section */}
-        <div className="bg-gray-50 py-16">
-          <div className="container mx-auto px-4">
-            <div className="text-center max-w-3xl mx-auto mb-10">
-              <h2 className="text-3xl font-bold mb-4">Escolha o Plano Ideal Para Você</h2>
-              <p className="text-gray-600">
-                Tenha acesso ao maior banco de dados de imóveis em leilão do Brasil e ferramentas exclusivas para ampliar seus resultados.
-              </p>
-            </div>
-            
-            <PricingToggle isYearly={isYearly} onToggle={() => setIsYearly(!isYearly)} />
-            
-            {activePlans.length > 0 ? (
-              <div className="flex flex-wrap justify-center gap-8 mt-8">
-                {activePlans.map((plan) => (
-                  <div className="w-full md:w-[350px]">
-                    <SubscriptionPlanCard
-                      key={plan.id}
-                      plan={plan}
-                      isCurrentPlan={isCurrentPlan(plan.id)}
-                      isLoading={false}
-                      billingInterval={isYearly ? 'year' : 'month'}
-                      onSubscribe={handleSubscribe}
-                    />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-10">
-                <p>Carregando planos...</p>
-              </div>
-            )}
-            
-            <div className="text-center mt-8">
-              <Button onClick={() => navigate('/pricing')} variant="outline" className="text-lg">
-                Ver Detalhes dos Planos <ArrowRight className="ml-2 h-5 w-5" />
+              <Button 
+                onClick={() => setShowPlans(!showPlans)} 
+                variant={showPlans ? "default" : "outline"} 
+                className={showPlans ? "bg-auction-primary hover:bg-auction-secondary" : "bg-white text-auction-primary hover:bg-gray-100"}
+              >
+                {showPlans ? "Ocultar Planos" : "Exibir Planos"}
               </Button>
             </div>
           </div>
         </div>
+        
+        {/* Subscription plan section - conditionally rendered */}
+        {showPlans && (
+          <div className="bg-gray-50 py-16">
+            <div className="container mx-auto px-4">
+              <div className="text-center max-w-3xl mx-auto mb-10">
+                <h2 className="text-3xl font-bold mb-4">Escolha o Plano Ideal Para Você</h2>
+                <p className="text-gray-600">
+                  Tenha acesso ao maior banco de dados de imóveis em leilão do Brasil e ferramentas exclusivas para ampliar seus resultados.
+                </p>
+              </div>
+              
+              <PricingToggle isYearly={isYearly} onToggle={() => setIsYearly(!isYearly)} />
+              
+              {activePlans.length > 0 ? (
+                <div className="flex flex-wrap justify-center gap-8 mt-8">
+                  {activePlans.map((plan) => (
+                    <div className="w-full md:w-[350px]">
+                      <SubscriptionPlanCard
+                        key={plan.id}
+                        plan={plan}
+                        isCurrentPlan={isCurrentPlan(plan.id)}
+                        isLoading={false}
+                        billingInterval={isYearly ? 'year' : 'month'}
+                        onSubscribe={handleSubscribe}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-10">
+                  <p>Carregando planos...</p>
+                </div>
+              )}
+              
+              <div className="text-center mt-8">
+                <Button onClick={() => navigate('/pricing')} variant="outline" className="text-lg">
+                  Ver Detalhes dos Planos <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
         
         {/* How it works section */}
         <div className="py-16 bg-white">

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Link, useNavigate } from 'react-router-dom';
@@ -7,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 const Navbar = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [showPlansMenu, setShowPlansMenu] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -54,10 +56,20 @@ const Navbar = () => {
           <div className="hidden md:flex flex-1 items-center justify-center space-x-4">
             <Link to="/properties" className="nav-link">Imóveis</Link>
             <Link to="/simulator" className="nav-link">Simulador</Link>
-            <Link to="/pricing" className="nav-link">Planos</Link>
+            {showPlansMenu && (
+              <Link to="/pricing" className="nav-link">Planos</Link>
+            )}
             {isLoggedIn && (
               <Link to="/dashboard" className="nav-link">Minha Conta</Link>
             )}
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => setShowPlansMenu(!showPlansMenu)}
+              className="text-sm text-gray-600 hover:text-auction-primary"
+            >
+              {showPlansMenu ? "Ocultar Planos" : "Exibir Planos"}
+            </Button>
           </div>
           <div className="flex items-center space-x-3 flex-shrink-0">
             <button type="button" className="p-1 rounded-full text-gray-600 hover:bg-gray-100 focus:outline-none">

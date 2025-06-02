@@ -139,7 +139,7 @@ const SearchFilters = ({ filters, setFilters, onSearch }: { filters: any, setFil
             </Select>
           </div>
 
-          <Accordion type="single" collapsible className="w-full border-none">
+          <Accordion type="single" collapsible className="w-full border-none" defaultValue="advanced-filters">
             <AccordionItem value="advanced-filters" className="border-b-0">
               <AccordionTrigger className="py-2 text-sm font-medium text-auction-primary hover:no-underline hover:text-auction-secondary">
                 Filtros avançados
