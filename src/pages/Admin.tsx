@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
 import { Search, Plus, Edit, Trash, User, Home, Gavel, AlertTriangle, MapPin, Calendar, CreditCard, Loader2, Ticket } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
@@ -145,13 +146,14 @@ const Admin = () => {
     if (!confirmDelete) return;
     const { error } = await supabase.from('properties').delete().eq('id', id);
     if (error) {
-      toast.error({
+      toast({
         title: "Erro",
         description: 'Erro ao excluir imóvel: ' + error.message,
+        variant: "destructive"
       });
       return;
     }
-    toast.success({
+    toast({
       title: "Sucesso",
       description: 'Imóvel excluído com sucesso.',
     });
@@ -175,9 +177,10 @@ const Admin = () => {
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
         const { data, error } = await supabase.storage.from('properties-images').upload(fileName, file);
         if (error) {
-          toast.error({
+          toast({
             title: "Erro",
             description: 'Erro ao fazer upload da imagem: ' + error.message,
+            variant: "destructive"
           });
           setIsSaving(false);
           return;
@@ -219,16 +222,17 @@ const Admin = () => {
         .update(propertyData)
         .eq('id', propertyId);
       if (error) {
-        toast.error({
+        toast({
           title: "Erro",
           description: 'Erro ao atualizar imóvel: ' + error.message,
+          variant: "destructive"
         });
         setIsSaving(false);
         return;
       }
       // Remove auctions antigos
       await supabase.from('auctions').delete().eq('property_id', propertyId);
-      toast.success({
+      toast({
         title: "Sucesso",
         description: "Imóvel atualizado com sucesso!",
       });
@@ -239,15 +243,16 @@ const Admin = () => {
         .insert([propertyData])
         .select('id');
       if (error) {
-        toast.error({
+        toast({
           title: "Erro",
           description: 'Erro ao salvar imóvel: ' + error.message,
+          variant: "destructive"
         });
         setIsSaving(false);
         return;
       }
       propertyId = data[0].id;
-      toast.success({
+      toast({
         title: "Sucesso",
         description: "Imóvel salvo com sucesso!",
       });
@@ -322,9 +327,10 @@ const Admin = () => {
     }
     const { data, error, count } = await query.range(from, to);
     if (error) {
-      toast.error({
+      toast({
         title: "Erro",
         description: 'Erro ao buscar imóveis: ' + error.message,
+        variant: "destructive"
       });
       setIsLoadingProperties(false);
       return;
@@ -385,17 +391,19 @@ const Admin = () => {
         scraping_sites: settings.scraping_sites,
         notification_email: settings.notification_email,
         notification_template: settings.notification_template,
+        show_plans_section: settings.show_plans_section,
         updated_at: new Date().toISOString(),
       })
       .eq('id', settings.id);
     setIsLoadingSettings(false);
     if (error) {
-      toast.error({
+      toast({
         title: "Erro",
         description: 'Erro ao salvar configurações: ' + error.message,
+        variant: "destructive"
       });
     } else {
-      toast.success({
+      toast({
         title: "Sucesso",
         description: 'Configurações salvas com sucesso!',
       });
@@ -1088,6 +1096,24 @@ const Admin = () => {
                   <div>Carregando configurações...</div>
                 ) : settings ? (
                   <>
+                    <div className="space-y-2">
+                      <h3 className="text-lg font-medium">Configurações Gerais</h3>
+                      <div className="flex items-center justify-between p-4 border rounded-lg">
+                        <div className="space-y-0.5">
+                          <Label className="text-base font-medium">
+                            Exibir Seção de Planos
+                          </Label>
+                          <p className="text-sm text-gray-500">
+                            Controla se a seção de planos aparece na página inicial e no menu
+                          </p>
+                        </div>
+                        <Switch
+                          checked={settings.show_plans_section ?? true}
+                          onCheckedChange={(checked) => handleSettingsChange('show_plans_section', checked)}
+                        />
+                      </div>
+                    </div>
+                    
                     <div className="space-y-2">
                       <h3 className="text-lg font-medium">Integração com APIs</h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
