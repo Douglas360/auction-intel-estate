@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import UserDashboardHeader from '@/components/UserDashboardHeader';
@@ -48,66 +47,74 @@ const UserDashboard = () => {
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
     
-    let queryBuilder = supabase.from('properties');
-    let query = queryBuilder.select('*', { count: 'exact' });
+    // Build query with explicit typing to avoid deep type inference
+    const baseQuery = supabase.from('properties').select('*', { count: 'exact' });
     
-    // Apply filters step by step to avoid complex type inference
+    // Build filters array for chaining
+    const queryFilters: Array<(q: any) => any> = [];
+    
     if (filters.state && filters.state !== '') {
-      query = query.eq('state', filters.state);
+      queryFilters.push((q) => q.eq('state', filters.state));
     }
     
     if (filters.location && filters.location !== '') {
       const locationFilter = `city.ilike.%${filters.location}%,address.ilike.%${filters.location}%,type.ilike.%${filters.location}%,state.ilike.%${filters.location}%`;
-      query = query.or(locationFilter);
+      queryFilters.push((q) => q.or(locationFilter));
     }
     
     if (filters.propertyType && filters.propertyType !== '') {
-      query = query.eq('type', filters.propertyType);
+      queryFilters.push((q) => q.eq('type', filters.propertyType));
     }
     
     if (filters.auctionType && filters.auctionType !== '') {
-      query = query.eq('auction_type', filters.auctionType);
+      queryFilters.push((q) => q.eq('auction_type', filters.auctionType));
     }
     
     if (filters.discount && filters.discount > 0) {
-      query = query.gte('discount', filters.discount);
+      queryFilters.push((q) => q.gte('discount', filters.discount));
     }
     
     if (filters.minPrice && filters.minPrice > 0) {
-      query = query.gte('auction_price', filters.minPrice);
+      queryFilters.push((q) => q.gte('auction_price', filters.minPrice));
     }
     
     if (filters.maxPrice && filters.maxPrice > 0) {
-      query = query.lte('auction_price', filters.maxPrice);
+      queryFilters.push((q) => q.lte('auction_price', filters.maxPrice));
     }
     
     if (filters.bedrooms && filters.bedrooms !== '') {
-      query = query.gte('bedrooms', Number(filters.bedrooms));
+      queryFilters.push((q) => q.gte('bedrooms', Number(filters.bedrooms)));
     }
     
     if (filters.garage && filters.garage !== '') {
-      query = query.gte('garage', Number(filters.garage));
+      queryFilters.push((q) => q.gte('garage', Number(filters.garage)));
     }
     
     if (filters.allow_financing) {
-      query = query.eq('allow_financing', true);
+      queryFilters.push((q) => q.eq('allow_financing', true));
     }
     
     if (filters.allow_consorcio) {
-      query = query.eq('allow_consorcio', true);
+      queryFilters.push((q) => q.eq('allow_consorcio', true));
     }
     
     if (filters.allow_fgts) {
-      query = query.eq('allow_fgts', true);
+      queryFilters.push((q) => q.eq('allow_fgts', true));
     }
     
     if (filters.allow_parcelamento) {
-      query = query.eq('allow_parcelamento', true);
+      queryFilters.push((q) => q.eq('allow_parcelamento', true));
     }
     
-    query = query.order('created_at', { ascending: false }).range(from, to);
+    // Apply all filters
+    let finalQuery = baseQuery;
+    queryFilters.forEach(filter => {
+      finalQuery = filter(finalQuery);
+    });
     
-    const { data, error, count } = await query;
+    finalQuery = finalQuery.order('created_at', { ascending: false }).range(from, to);
+    
+    const { data, error, count } = await finalQuery;
     if (error) throw error;
     return { data, count };
   };
